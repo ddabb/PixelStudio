@@ -1,0 +1,76 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Main module of PixelStudio"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "PixelStudio app entry"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "PixelStudio"
+    },
+    {
+      "name": "app_tagline",
+      "value": "Native pixel art and frame-by-frame animation editor"
+    },
+    {
+      "name": "buyout_note",
+      "value": "One-time purchase · No ads · No subscription"
+    },
+    {
+      "name": "offline_note",
+      "value": "No network permission · Fully offline"
+    },
+    {
+      "name": "scaffold_title",
+      "value": "M0 scaffold"
+    },
+    {
+      "name": "scaffold_desc",
+      "value": "Core modules land in batches per the dev plan. This is a placeholder home page."
+    },
+    {
+      "name": "plan_note",
+      "value": "Dev plan, milestones, and acceptance criteria live in docs/."
+    },
+    {
+      "name": "version_label",
+      "value": "Version"
+    },
+    {
+      "name": "version_value",
+      "value": "v1.0.0"
+    },
+    {
+      "name": "mod_tools",
+      "value": "Canvas and tools (pencil/fill/shapes/eyedropper)"
+    },
+    {
+      "name": "mod_layers",
+      "value": "Layer system (up to 8 layers)"
+    },
+    {
+      "name": "mod_frames",
+      "value": "Frame animation and onion skin"
+    },
+    {
+      "name": "mod_palette",
+      "value": "Palettes (PICO-8 / GameBoy and more)"
+    },
+    {
+      "name": "mod_undo",
+      "value": "Undo/redo (100+ steps)"
+    },
+    {
+      "name": "mod_export",
+      "value": "PNG / GIF export"
+    },
+    {
+      "name": "mod_project",
+      "value": "Project files and autosave"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "像素画工作室主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "像素画工作室应用入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "像素画工作室"
+    },
+    {
+      "name": "app_tagline",
+      "value": "鸿蒙原生像素画与逐帧动画编辑器"
+    },
+    {
+      "name": "buyout_note",
+      "value": "一次买断 · 无广告 · 无订阅"
+    },
+    {
+      "name": "offline_note",
+      "value": "零网络权限 · 全离线"
+    },
+    {
+      "name": "scaffold_title",
+      "value": "M0 工程脚手架"
+    },
+    {
+      "name": "scaffold_desc",
+      "value": "核心模块按开发计划分批落地，当前为占位首页。"
+    },
+    {
+      "name": "plan_note",
+      "value": "开发计划、里程碑与验收标准见 docs/ 目录。"
+    },
+    {
+      "name": "version_label",
+      "value": "版本"
+    },
+    {
+      "name": "version_value",
+      "value": "v1.0.0"
+    },
+    {
+      "name": "mod_tools",
+      "value": "画布与工具（铅笔/填充/形状/吸管）"
+    },
+    {
+      "name": "mod_layers",
+      "value": "图层系统（≤8 层）"
+    },
+    {
+      "name": "mod_frames",
+      "value": "帧动画与洋葱皮"
+    },
+    {
+      "name": "mod_palette",
+      "value": "调色板（PICO-8 / GameBoy 等）"
+    },
+    {
+      "name": "mod_undo",
+      "value": "撤销重做（≥100 步）"
+    },
+    {
+      "name": "mod_export",
+      "value": "PNG / GIF 导出"
+    },
+    {
+      "name": "mod_project",
+      "value": "工程文件与自动保存"
+    }
+  ]
+}
