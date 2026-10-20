@@ -10,6 +10,9 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+.DS_Store
+Thumbs.db
+*.log
 .codebuddy
 .cache/
 .deveco/
