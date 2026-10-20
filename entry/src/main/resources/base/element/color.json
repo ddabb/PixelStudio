@@ -51,6 +51,10 @@
     {
       "name": "on_accent_text",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "canvas_backdrop",
+      "value": "#E8E8F0"
     }
   ]
 }

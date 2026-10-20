@@ -71,6 +71,34 @@
     {
       "name": "mod_project",
       "value": "Project files and autosave"
+    },
+    {
+      "name": "home_enter_editor",
+      "value": "Open Editor"
+    },
+    {
+      "name": "editor_title",
+      "value": "Pixel Editor"
+    },
+    {
+      "name": "tool_pencil",
+      "value": "Pencil"
+    },
+    {
+      "name": "tool_eraser",
+      "value": "Eraser"
+    },
+    {
+      "name": "brush_size",
+      "value": "Brush"
+    },
+    {
+      "name": "mirror_x",
+      "value": "Mirror X"
+    },
+    {
+      "name": "clear_canvas",
+      "value": "Clear"
     }
   ]
 }

@@ -2,7 +2,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 
-const DOMAIN = 0xF0001;
+const DOMAIN = 0x0001;
 const TAG = 'PixelStudio';
 
 export default class EntryAbility extends UIAbility {

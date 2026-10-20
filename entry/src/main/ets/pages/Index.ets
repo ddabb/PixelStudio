@@ -85,6 +85,19 @@ struct Index {
           .fontColor($r('app.color.hint_text'))
           .textAlign(TextAlign.Center)
           .width('90%')
+
+        // M0 渲染管线入口：64×64 编辑器（画布显示 + 落笔显色）
+        Button($r('app.string.home_enter_editor'))
+          .type(ButtonType.Normal)
+          .borderRadius(14)
+          .width('60%')
+          .height(44)
+          .fontSize(16)
+          .backgroundColor($r('app.color.brand'))
+          .fontColor($r('app.color.on_accent_text'))
+          .onClick(() => {
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/EditorPage' });
+          })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Center)

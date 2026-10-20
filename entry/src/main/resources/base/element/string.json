@@ -71,6 +71,34 @@
     {
       "name": "mod_project",
       "value": "工程文件与自动保存"
+    },
+    {
+      "name": "home_enter_editor",
+      "value": "进入编辑器"
+    },
+    {
+      "name": "editor_title",
+      "value": "像素编辑器"
+    },
+    {
+      "name": "tool_pencil",
+      "value": "铅笔"
+    },
+    {
+      "name": "tool_eraser",
+      "value": "橡皮"
+    },
+    {
+      "name": "brush_size",
+      "value": "笔宽"
+    },
+    {
+      "name": "mirror_x",
+      "value": "镜像X"
+    },
+    {
+      "name": "clear_canvas",
+      "value": "清空"
     }
   ]
 }
