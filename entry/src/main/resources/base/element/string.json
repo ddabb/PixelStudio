@@ -99,6 +99,126 @@
     {
       "name": "clear_canvas",
       "value": "清空"
+    },
+    {
+      "name": "tool_fill",
+      "value": "填充"
+    },
+    {
+      "name": "tool_line",
+      "value": "直线"
+    },
+    {
+      "name": "tool_rect",
+      "value": "矩形"
+    },
+    {
+      "name": "tool_ellipse",
+      "value": "椭圆"
+    },
+    {
+      "name": "tool_eyedropper",
+      "value": "吸管"
+    },
+    {
+      "name": "shape_filled",
+      "value": "实心"
+    },
+    {
+      "name": "grid_auto",
+      "value": "网格·自动"
+    },
+    {
+      "name": "grid_on",
+      "value": "网格·开"
+    },
+    {
+      "name": "grid_off",
+      "value": "网格·关"
+    },
+    {
+      "name": "undo",
+      "value": "撤销"
+    },
+    {
+      "name": "redo",
+      "value": "重做"
+    },
+    {
+      "name": "back",
+      "value": "返回"
+    },
+    {
+      "name": "tool_selection",
+      "value": "选区"
+    },
+    {
+      "name": "tab_canvas",
+      "value": "画布"
+    },
+    {
+      "name": "tab_layers",
+      "value": "图层"
+    },
+    {
+      "name": "layer_new",
+      "value": "新建图层"
+    },
+    {
+      "name": "layer_hide",
+      "value": "隐藏"
+    },
+    {
+      "name": "layer_show",
+      "value": "显示"
+    },
+    {
+      "name": "layer_move_up",
+      "value": "上移"
+    },
+    {
+      "name": "layer_move_down",
+      "value": "下移"
+    },
+    {
+      "name": "layer_opacity",
+      "value": "不透明度"
+    },
+    {
+      "name": "layer_rename",
+      "value": "重命名"
+    },
+    {
+      "name": "layer_delete",
+      "value": "删除图层"
+    },
+    {
+      "name": "layer_name_default",
+      "value": "图层 %d"
+    },
+    {
+      "name": "delete_confirm",
+      "value": "确认删除"
+    },
+    {
+      "name": "common_confirm",
+      "value": "确定"
+    },
+    {
+      "name": "common_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "sel_copy",
+      "value": "复制"
+    },
+    {
+      "name": "sel_delete",
+      "value": "删除"
+    },
+    {
+      "name": "sel_cancel",
+      "value": "取消选区"
     }
   ]
 }

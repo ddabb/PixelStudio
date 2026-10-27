@@ -6,6 +6,9 @@
 
 import { PixelBuffer } from './PixelBuffer';
 
+/** 图层数量上限（开发计划 §4.1 P0：≤8 层）。 */
+export const MAX_LAYERS = 8;
+
 export class PixelLayer {
   id: number;
   name: string;
@@ -37,7 +40,10 @@ export class PixelDoc {
     this.addLayer('Layer 1');
   }
 
-  addLayer(name: string): PixelLayer {
+  addLayer(name: string): PixelLayer | undefined {
+    if (this.layers.length >= MAX_LAYERS) {
+      return undefined;
+    }
     const layer = new PixelLayer(this.nextLayerId, name);
     this.nextLayerId++;
     this.layers.push(layer);
@@ -45,6 +51,44 @@ export class PixelDoc {
       this.cells[f].push(new PixelBuffer(this.w, this.h));
     }
     return layer;
+  }
+
+  /** 删除图层（结构操作）：至少保留 1 层；活动层越界回夹。 */
+  deleteLayer(layerIndex: number): boolean {
+    if (layerIndex < 0 || layerIndex >= this.layers.length || this.layers.length <= 1) {
+      return false;
+    }
+    this.layers.splice(layerIndex, 1);
+    for (let f = 0; f < this.cells.length; f++) {
+      this.cells[f].splice(layerIndex, 1);
+    }
+    if (this.activeLayer >= this.layers.length) {
+      this.activeLayer = this.layers.length - 1;
+    }
+    return true;
+  }
+
+  /** 相邻交换图层（含各帧 cel）；dir=+1 向堆顶（合成在上），-1 向堆底。 */
+  moveLayer(layerIndex: number, dir: number): boolean {
+    const to = layerIndex + dir;
+    if (layerIndex < 0 || layerIndex >= this.layers.length || to < 0 || to >= this.layers.length) {
+      return false;
+    }
+    const layer = this.layers[layerIndex];
+    this.layers[layerIndex] = this.layers[to];
+    this.layers[to] = layer;
+    for (let f = 0; f < this.cells.length; f++) {
+      const row = this.cells[f];
+      const cel = row[layerIndex];
+      row[layerIndex] = row[to];
+      row[to] = cel;
+    }
+    if (this.activeLayer === layerIndex) {
+      this.activeLayer = to;
+    } else if (this.activeLayer === to) {
+      this.activeLayer = layerIndex;
+    }
+    return true;
   }
 
   addFrame(): void {

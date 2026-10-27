@@ -99,6 +99,126 @@
     {
       "name": "clear_canvas",
       "value": "Clear"
+    },
+    {
+      "name": "tool_fill",
+      "value": "Fill"
+    },
+    {
+      "name": "tool_line",
+      "value": "Line"
+    },
+    {
+      "name": "tool_rect",
+      "value": "Rect"
+    },
+    {
+      "name": "tool_ellipse",
+      "value": "Ellipse"
+    },
+    {
+      "name": "tool_eyedropper",
+      "value": "Pick"
+    },
+    {
+      "name": "shape_filled",
+      "value": "Filled"
+    },
+    {
+      "name": "grid_auto",
+      "value": "Grid Auto"
+    },
+    {
+      "name": "grid_on",
+      "value": "Grid On"
+    },
+    {
+      "name": "grid_off",
+      "value": "Grid Off"
+    },
+    {
+      "name": "undo",
+      "value": "Undo"
+    },
+    {
+      "name": "redo",
+      "value": "Redo"
+    },
+    {
+      "name": "back",
+      "value": "Back"
+    },
+    {
+      "name": "tool_selection",
+      "value": "Select"
+    },
+    {
+      "name": "tab_canvas",
+      "value": "Canvas"
+    },
+    {
+      "name": "tab_layers",
+      "value": "Layers"
+    },
+    {
+      "name": "layer_new",
+      "value": "New Layer"
+    },
+    {
+      "name": "layer_hide",
+      "value": "Hide"
+    },
+    {
+      "name": "layer_show",
+      "value": "Show"
+    },
+    {
+      "name": "layer_move_up",
+      "value": "Move Up"
+    },
+    {
+      "name": "layer_move_down",
+      "value": "Move Down"
+    },
+    {
+      "name": "layer_opacity",
+      "value": "Opacity"
+    },
+    {
+      "name": "layer_rename",
+      "value": "Rename"
+    },
+    {
+      "name": "layer_delete",
+      "value": "Delete Layer"
+    },
+    {
+      "name": "layer_name_default",
+      "value": "Layer %d"
+    },
+    {
+      "name": "delete_confirm",
+      "value": "Confirm Delete"
+    },
+    {
+      "name": "common_confirm",
+      "value": "OK"
+    },
+    {
+      "name": "common_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "sel_copy",
+      "value": "Copy"
+    },
+    {
+      "name": "sel_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "sel_cancel",
+      "value": "Cancel Selection"
     }
   ]
 }

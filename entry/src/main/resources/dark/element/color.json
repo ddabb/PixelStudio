@@ -55,6 +55,18 @@
     {
       "name": "canvas_backdrop",
       "value": "#2E2E3A"
+    },
+    {
+      "name": "checker_a",
+      "value": "#3A3A46"
+    },
+    {
+      "name": "checker_b",
+      "value": "#2A2A34"
+    },
+    {
+      "name": "grid_line",
+      "value": "#80FFFFFF"
     }
   ]
 }

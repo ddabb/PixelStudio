@@ -8,8 +8,10 @@
  */
 import abilityTest from './Ability.test';
 import pixelCoreTest from './PixelCore.test';
+import pixelDocTest from './PixelDoc.test';
 
 export default function testsuite() {
   abilityTest();
   pixelCoreTest();
+  pixelDocTest();
 }

@@ -10,6 +10,41 @@ import { PixelBuffer } from '../../../main/ets/core/PixelBuffer';
 import { PixelDoc } from '../../../main/ets/core/PixelDoc';
 import { Raster } from '../../../main/ets/core/Raster';
 import { Compose } from '../../../main/ets/core/Compose';
+import { FloodFill } from '../../../main/ets/core/FloodFill';
+import { UndoStack } from '../../../main/ets/core/UndoStack';
+import { GestureTracker, GestureSink } from '../../../main/ets/core/GestureTracker';
+
+class RecordingSink implements GestureSink {
+  log: string[] = [];
+
+  onStrokeBegin(x: number, y: number): void {
+    this.log.push(`b:${x},${y}`);
+  }
+
+  onStrokeMove(x: number, y: number): void {
+    this.log.push(`m:${x},${y}`);
+  }
+
+  onStrokeEnd(x: number, y: number): void {
+    this.log.push(`e:${x},${y}`);
+  }
+
+  onStrokeRollback(): void {
+    this.log.push('rb');
+  }
+
+  onGestureStart(): void {
+    this.log.push('gs');
+  }
+
+  onGestureMove(fx: number, fy: number, tx: number, ty: number, zf: number): void {
+    this.log.push(`gm:${fx},${fy},${tx},${ty},${zf.toFixed(2)}`);
+  }
+
+  onGestureEnd(): void {
+    this.log.push('ge');
+  }
+}
 
 const BLACK = 0xFF000000;
 const RED = 0xFFFF0000;
@@ -297,6 +332,398 @@ export default function pixelCoreTest() {
       expect(out[3]).assertEqual(0);
       expect(out[(2 * 4 + 2) * 4 + 1]).assertEqual(255);
       expect(out[(2 * 4 + 2) * 4 + 3]).assertEqual(255);
+    });
+
+    // ---------- Raster：矩形/椭圆（M1） ----------
+    it('Raster_rect_outline_golden', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeRect(buf, 0, 0, 3, 2, 1, BLACK, false, false);
+      for (let x = 0; x <= 3; x++) {
+        expect(buf.getPx(x, 0)).assertEqual(BLACK);
+        expect(buf.getPx(x, 2)).assertEqual(BLACK);
+      }
+      expect(buf.getPx(0, 1)).assertEqual(BLACK);
+      expect(buf.getPx(3, 1)).assertEqual(BLACK);
+      expect(buf.getPx(1, 1)).assertEqual(0);
+      expect(buf.getPx(2, 1)).assertEqual(0);
+      expect(countOpaque(buf)).assertEqual(10);
+    });
+
+    it('Raster_rect_filled_golden', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeRect(buf, 1, 1, 3, 2, 1, RED, false, true);
+      for (let y = 1; y <= 2; y++) {
+        for (let x = 1; x <= 3; x++) {
+          expect(buf.getPx(x, y)).assertEqual(RED);
+        }
+      }
+      expect(countOpaque(buf)).assertEqual(6);
+    });
+
+    it('Raster_rect_coords_normalized', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeRect(buf, 3, 2, 0, 0, 1, BLACK, false, false);
+      expect(buf.getPx(0, 0)).assertEqual(BLACK);
+      expect(buf.getPx(3, 2)).assertEqual(BLACK);
+      expect(countOpaque(buf)).assertEqual(10);
+    });
+
+    it('Raster_rect_filled_mirror', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeRect(buf, 1, 1, 2, 2, 1, RED, true, true);
+      for (let y = 1; y <= 2; y++) {
+        for (let x = 1; x <= 2; x++) {
+          expect(buf.getPx(x, y)).assertEqual(RED);
+          expect(buf.getPx(7 - x, y)).assertEqual(RED);
+        }
+      }
+      expect(countOpaque(buf)).assertEqual(8);
+    });
+
+    it('Raster_ellipse_outline_golden', 0, () => {
+      // bbox (0,0)-(4,2)：cx=2 cy=1 rx=2 ry=1 → 弧点 8 个。
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeEllipse(buf, 0, 0, 4, 2, 1, BLACK, false, false);
+      const arc: number[] = [2, 0, 1, 0, 3, 0, 0, 1, 4, 1, 1, 2, 2, 2, 3, 2];
+      for (let i = 0; i < arc.length; i += 2) {
+        expect(buf.getPx(arc[i], arc[i + 1])).assertEqual(BLACK);
+      }
+      expect(countOpaque(buf)).assertEqual(8);
+    });
+
+    it('Raster_ellipse_filled_golden', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeEllipse(buf, 0, 0, 4, 2, 1, BLACK, false, true);
+      for (let x = 1; x <= 3; x++) {
+        expect(buf.getPx(x, 0)).assertEqual(BLACK);
+        expect(buf.getPx(x, 2)).assertEqual(BLACK);
+      }
+      for (let x = 0; x <= 4; x++) {
+        expect(buf.getPx(x, 1)).assertEqual(BLACK);
+      }
+      expect(countOpaque(buf)).assertEqual(11);
+    });
+
+    it('Raster_ellipse_degenerate_line', 0, () => {
+      // rx=0（宽 1）→ 退化为竖线。
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeEllipse(buf, 2, 0, 2, 3, 1, BLACK, false, false);
+      for (let y = 0; y <= 3; y++) {
+        expect(buf.getPx(2, y)).assertEqual(BLACK);
+      }
+      expect(countOpaque(buf)).assertEqual(4);
+    });
+
+    it('Raster_ellipse_center_symmetry', 0, () => {
+      const buf = new PixelBuffer(9, 9);
+      Raster.strokeEllipse(buf, 0, 0, 8, 8, 1, BLACK, false, false);
+      let n = 0;
+      for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < 9; x++) {
+          if (buf.getPx(x, y) === BLACK) {
+            expect(buf.getPx(8 - x, 8 - y)).assertEqual(BLACK);
+            n++;
+          }
+        }
+      }
+      expect(n > 0).assertTrue();
+    });
+
+    // ---------- FloodFill（M1） ----------
+    it('FloodFill_full_canvas', 0, () => {
+      const buf = new PixelBuffer(6, 4);
+      expect(FloodFill.fill(buf, 0, 0, RED)).assertTrue();
+      expect(countOpaque(buf)).assertEqual(24);
+      expect(buf.getPx(5, 3)).assertEqual(RED);
+    });
+
+    it('FloodFill_ring_unreachable', 0, () => {
+      const buf = new PixelBuffer(7, 7);
+      for (let a = -2; a <= 2; a++) {
+        buf.setPx(3 + a, 1, BLACK);
+        buf.setPx(3 + a, 5, BLACK);
+        buf.setPx(1, 3 + a, BLACK);
+        buf.setPx(5, 3 + a, BLACK);
+      }
+      expect(FloodFill.fill(buf, 0, 0, RED)).assertTrue();
+      expect(buf.getPx(0, 0)).assertEqual(RED);
+      expect(buf.getPx(6, 6)).assertEqual(RED);
+      expect(buf.getPx(3, 1)).assertEqual(BLACK);
+      expect(buf.getPx(3, 3)).assertEqual(0);
+    });
+
+    it('FloodFill_diagonal_not_connected', 0, () => {
+      // 仅对角相邻不算连通（4 连通）。
+      const buf = new PixelBuffer(2, 2);
+      buf.setPx(1, 0, BLACK);
+      buf.setPx(0, 1, BLACK);
+      FloodFill.fill(buf, 0, 0, RED);
+      expect(buf.getPx(0, 0)).assertEqual(RED);
+      expect(buf.getPx(1, 1)).assertEqual(0);
+    });
+
+    it('FloodFill_same_color_noop', 0, () => {
+      const buf = new PixelBuffer(4, 4);
+      expect(FloodFill.fill(buf, 0, 0, 0x00000000)).assertFalse();
+      expect(countOpaque(buf)).assertEqual(0);
+    });
+
+    it('FloodFill_out_of_bounds', 0, () => {
+      const buf = new PixelBuffer(4, 4);
+      expect(FloodFill.fill(buf, -1, 0, RED)).assertFalse();
+      expect(FloodFill.fill(buf, 0, 4, RED)).assertFalse();
+    });
+
+    it('FloodFill_exact_alpha_match', 0, () => {
+      const buf = new PixelBuffer(4, 2);
+      buf.setPx(0, 0, 0x80FF0000);
+      buf.setPx(1, 0, 0x80FF0000);
+      buf.setPx(2, 0, 0xFFFF0000);
+      FloodFill.fill(buf, 0, 0, GREEN);
+      expect(buf.getPx(0, 0)).assertEqual(GREEN);
+      expect(buf.getPx(1, 0)).assertEqual(GREEN);
+      expect(buf.getPx(2, 0)).assertEqual(0xFFFF0000);
+      expect(buf.getPx(0, 1)).assertEqual(0);
+    });
+
+    it('FloodFill_large_canvas_no_recursion', 0, () => {
+      const buf = new PixelBuffer(64, 64);
+      expect(FloodFill.fill(buf, 0, 0, RED)).assertTrue();
+      expect(buf.getPx(63, 63)).assertEqual(RED);
+    });
+
+    // ---------- UndoStack（M1） ----------
+    it('UndoStack_push_undo_redo', 0, () => {
+      const cell = new Uint8Array(16);
+      const stack = new UndoStack(10);
+      const before = cell.slice();
+      cell[0] = 2;
+      cell[1] = 2;
+      const entry = UndoStack.entryIfChanged(cell, before);
+      if (entry === undefined) {
+        expect(false).assertTrue();
+        return;
+      }
+      stack.push(entry);
+      expect(stack.canUndo()).assertTrue();
+      expect(stack.canRedo()).assertFalse();
+      stack.undo();
+      expect(cell[0]).assertEqual(0);
+      expect(cell[1]).assertEqual(0);
+      expect(stack.canUndo()).assertFalse();
+      expect(stack.canRedo()).assertTrue();
+      stack.redo();
+      expect(cell[0]).assertEqual(2);
+      expect(cell[1]).assertEqual(2);
+    });
+
+    it('UndoStack_unchanged_not_pushed', 0, () => {
+      const cell = new Uint8Array(16);
+      cell[3] = 7;
+      expect(UndoStack.entryIfChanged(cell, cell.slice())).assertUndefined();
+    });
+
+    it('UndoStack_redo_cleared_on_push', 0, () => {
+      const cell = new Uint8Array(16);
+      const stack = new UndoStack(10);
+      let before = cell.slice();
+      cell[0] = 1;
+      let e = UndoStack.entryIfChanged(cell, before);
+      if (e !== undefined) {
+        stack.push(e);
+      }
+      before = cell.slice();
+      cell[1] = 1;
+      e = UndoStack.entryIfChanged(cell, before);
+      if (e !== undefined) {
+        stack.push(e);
+      }
+      stack.undo();
+      expect(cell[1]).assertEqual(0);
+      expect(stack.canRedo()).assertTrue();
+      before = cell.slice();
+      cell[2] = 1;
+      e = UndoStack.entryIfChanged(cell, before);
+      if (e !== undefined) {
+        stack.push(e);
+      }
+      expect(stack.canRedo()).assertFalse();
+      expect(cell[1]).assertEqual(0);
+    });
+
+    it('UndoStack_capacity_lru', 0, () => {
+      const stack = new UndoStack(3);
+      const cell = new Uint8Array(4);
+      for (let i = 0; i < 4; i++) {
+        const before = cell.slice();
+        cell[0] = i + 1;
+        const e = UndoStack.entryIfChanged(cell, before);
+        if (e !== undefined) {
+          stack.push(e);
+        }
+      }
+      stack.undo();
+      expect(cell[0]).assertEqual(3);
+      stack.undo();
+      expect(cell[0]).assertEqual(2);
+      stack.undo();
+      expect(cell[0]).assertEqual(1);
+      expect(stack.canUndo()).assertFalse();
+    });
+
+    it('UndoStack_default_capacity_100', 0, () => {
+      const stack = new UndoStack();
+      const cell = new Uint8Array(4);
+      for (let i = 0; i < 100; i++) {
+        const before = cell.slice();
+        cell[0] = i + 1;
+        const e = UndoStack.entryIfChanged(cell, before);
+        if (e !== undefined) {
+          stack.push(e);
+        }
+      }
+      expect(stack.canUndo()).assertTrue();
+      stack.undo();
+      expect(cell[0]).assertEqual(99);
+    });
+
+    it('UndoStack_snapshot_independence', 0, () => {
+      const cell = new Uint8Array(8);
+      const before = cell.slice();
+      cell[0] = 9;
+      const e = UndoStack.entryIfChanged(cell, before);
+      if (e === undefined) {
+        expect(false).assertTrue();
+        return;
+      }
+      cell[0] = 5;
+      e.cellData.set(e.before);
+      expect(cell[0]).assertEqual(0);
+      e.cellData.set(e.after);
+      expect(cell[0]).assertEqual(9);
+    });
+
+    // ---------- GestureTracker（M1） ----------
+    it('Gesture_single_stroke_flow', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.move(1, 20, 10);
+      t.move(1, 30, 10);
+      t.lift(1, 35, 10);
+      expect(JSON.stringify(sink.log)).assertEqual(
+        JSON.stringify(['b:10,10', 'm:20,10', 'm:30,10', 'e:35,10']));
+    });
+
+    it('Gesture_dismiss_threshold_8px', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      expect(t.isDismissed()).assertFalse();
+      t.move(1, 15, 10);
+      expect(t.isDismissed()).assertFalse();
+      t.move(1, 19, 10);
+      expect(t.isDismissed()).assertTrue();
+    });
+
+    it('Gesture_second_finger_before_dismiss_to_gesture', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.press(2, 50, 10, false);
+      expect(JSON.stringify(sink.log)).assertEqual(
+        JSON.stringify(['b:10,10', 'rb', 'gs']));
+      t.move(2, 90, 10);
+      expect(sink.log[3]).assertEqual('gm:30,10,50,10,2.00');
+      t.lift(1, 10, 10);
+      expect(sink.log[4]).assertEqual('ge');
+      t.move(2, 100, 10);
+      expect(sink.log.length).assertEqual(5);
+    });
+
+    it('Gesture_second_finger_after_dismiss_ignored', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.move(1, 40, 10);
+      expect(t.isDismissed()).assertTrue();
+      t.press(2, 50, 50, false);
+      expect(sink.log.length).assertEqual(2);
+      t.move(2, 60, 60);
+      expect(sink.log.length).assertEqual(2);
+      t.move(1, 45, 10);
+      expect(sink.log[2]).assertEqual('m:45,10');
+      t.lift(1, 50, 10);
+      expect(sink.log[3]).assertEqual('e:50,10');
+    });
+
+    it('Gesture_instant_press_no_rollback', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, true);
+      t.press(2, 50, 50, true);
+      expect(JSON.stringify(sink.log)).assertEqual(JSON.stringify(['b:10,10']));
+      t.lift(1, 12, 10);
+      expect(JSON.stringify(sink.log)).assertEqual(
+        JSON.stringify(['b:10,10', 'e:12,10']));
+    });
+
+    it('Gesture_lift_untracked_id_ignored', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.lift(2, 99, 99);
+      expect(t.isStrokeActive()).assertTrue();
+      t.lift(1, 11, 11);
+      expect(JSON.stringify(sink.log)).assertEqual(
+        JSON.stringify(['b:10,10', 'e:11,11']));
+    });
+
+    it('Gesture_force_rollback_before_dismiss', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.move(1, 12, 10);
+      expect(t.forceRollback()).assertTrue();
+      expect(sink.log[2]).assertEqual('rb');
+      expect(t.isStrokeActive()).assertFalse();
+      t.move(1, 30, 30);
+      t.lift(1, 30, 30);
+      expect(sink.log.length).assertEqual(3);
+    });
+
+    it('Gesture_force_rollback_denied_after_dismiss', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.move(1, 40, 10);
+      expect(t.forceRollback()).assertFalse();
+      expect(sink.log.includes('rb')).assertFalse();
+      expect(t.isStrokeActive()).assertTrue();
+    });
+
+    it('Gesture_force_end_out_of_canvas', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.move(1, 20, 10);
+      t.forceEnd();
+      expect(JSON.stringify(sink.log)).assertEqual(
+        JSON.stringify(['b:10,10', 'm:20,10', 'e:20,10']));
+      expect(t.isStrokeActive()).assertFalse();
+    });
+
+    it('Gesture_third_finger_ignored_in_gesture', 0, () => {
+      const sink = new RecordingSink();
+      const t = new GestureTracker(sink);
+      t.press(1, 10, 10, false);
+      t.press(2, 50, 10, false);
+      t.press(3, 30, 30, false);
+      t.move(3, 40, 40);
+      t.lift(3, 40, 40);
+      expect(sink.log.length).assertEqual(3);
+      t.move(1, 10, 20);
+      expect(sink.log[3]).assertEqual('gm:30,10,30,15,1.03');
     });
   });
 }
