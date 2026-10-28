@@ -1,6 +1,6 @@
 /**
- * pixelDocTest — M2 套件：PixelDoc 层操作 / DocOps 结构撤销（DocEntry）/
- * 选区内容操作（CelEntry）。运行协议（模拟器 class 过滤）：
+ * pixelDocTest — M2/M3 套件：PixelDoc 层与帧操作 / DocOps 结构撤销（DocEntry）/
+ * 选区内容操作（CelEntry）/ 播放态联动。运行协议（模拟器 class 过滤）：
  *   hdc shell aa test -b com.ddabb.pixelstudio -m entry_test -s unittest OpenHarmonyTestRunner
  *     -s class pixelDocTest -s timeout 15000
  */
@@ -366,6 +366,199 @@ export default function pixelDocTest() {
       expect(session.dirty).assertTrue();
       expect(session.tick > tickBefore).assertTrue();
       expect(countOpaque(cel)).assertEqual(0);
+    });
+
+    // ---------- PixelDoc 帧模型（M3） ----------
+
+    it('PixelDoc_insert_frame_row_validation', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const row: PixelBuffer[] = [new PixelBuffer(4, 4)];
+      expect(doc.insertFrame(1, row)).assertTrue();
+      expect(doc.frameCount).assertEqual(2);
+      // 行长度必须等于层数；index 越界拒绝。
+      expect(doc.insertFrame(0, [])).assertFalse();
+      expect(doc.insertFrame(-1, row)).assertFalse();
+      expect(doc.insertFrame(3, row)).assertFalse();
+      expect(doc.frameCount).assertEqual(2);
+    });
+
+    it('PixelDoc_remove_frame_refused_single', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      expect(doc.removeFrame(0)).assertFalse();
+      expect(doc.frameCount).assertEqual(1);
+    });
+
+    it('PixelDoc_remove_frame_clamps_active', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      doc.addFrame();
+      doc.addFrame();
+      doc.activeFrame = 2;
+      expect(doc.removeFrame(1)).assertTrue();
+      expect(doc.frameCount).assertEqual(2);
+      expect(doc.activeFrame).assertEqual(1);
+    });
+
+    it('PixelDoc_swap_frame_active_follows', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      doc.addFrame();
+      doc.addFrame();
+      doc.activeFrame = 1;
+      const mid = doc.cells[1];
+      expect(doc.swapFrame(1, 1)).assertTrue();
+      expect(doc.cells[2] === mid).assertTrue();
+      expect(doc.activeFrame).assertEqual(2);
+      expect(doc.swapFrame(2, 1)).assertFalse();
+      expect(doc.swapFrame(0, -1)).assertFalse();
+    });
+
+    // ---------- DocOps：帧操作与撤销（M3） ----------
+
+    it('DocOps_add_frame_undo_redo', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      expect(DocOps.addFrame(doc, session)).assertTrue();
+      const row = doc.cells[1];
+      expect(doc.frameCount).assertEqual(2);
+      expect(doc.activeFrame).assertEqual(1);
+      expect(session.activeFrame).assertEqual(1);
+      session.undo();
+      expect(doc.frameCount).assertEqual(1);
+      expect(doc.activeFrame).assertEqual(0);
+      expect(session.activeFrame).assertEqual(0);
+      session.redo();
+      expect(doc.frameCount).assertEqual(2);
+      // 帧撤销闭包捕获行引用：cel 缓冲只原位写入，引用跨撤销稳定。
+      expect(doc.cells[1] === row).assertTrue();
+    });
+
+    it('DocOps_duplicate_frame_content_independent', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      doc.getCell(0, 0)!.setPx(0, 0, RED);
+      expect(DocOps.duplicateFrame(doc, session, 0)).assertTrue();
+      expect(doc.frameCount).assertEqual(2);
+      expect(doc.activeFrame).assertEqual(1);
+      // 副本内容与原件一致但缓冲独立：改原件不影响副本。
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(RED);
+      doc.cells[0][0].setPx(0, 0, BLUE);
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(RED);
+      session.undo();
+      expect(doc.frameCount).assertEqual(1);
+      session.redo();
+      expect(doc.frameCount).assertEqual(2);
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(RED);
+    });
+
+    it('DocOps_delete_frame_undo_restores_order', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      DocOps.addFrame(doc, session);
+      DocOps.addFrame(doc, session);
+      DocOps.setActiveFrame(doc, session, 0);
+      doc.getCell(0, 0)!.setPx(0, 0, RED);
+      DocOps.setActiveFrame(doc, session, 1);
+      doc.getCell(1, 0)!.setPx(0, 0, GREEN);
+      DocOps.setActiveFrame(doc, session, 2);
+      doc.getCell(2, 0)!.setPx(0, 0, BLUE);
+      // 删除中间帧（GREEN）。
+      expect(DocOps.deleteFrame(doc, session, 1)).assertTrue();
+      expect(doc.frameCount).assertEqual(2);
+      expect(doc.cells[0][0].getPx(0, 0)).assertEqual(RED);
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(BLUE);
+      session.undo();
+      expect(doc.frameCount).assertEqual(3);
+      expect(doc.cells[0][0].getPx(0, 0)).assertEqual(RED);
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(GREEN);
+      expect(doc.cells[2][0].getPx(0, 0)).assertEqual(BLUE);
+      session.redo();
+      expect(doc.frameCount).assertEqual(2);
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(BLUE);
+    });
+
+    it('DocOps_delete_frame_refused_single', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      expect(DocOps.deleteFrame(doc, session, 0)).assertFalse();
+      expect(session.canUndo).assertFalse();
+    });
+
+    it('DocOps_move_frame_undo_redo', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      DocOps.addFrame(doc, session);
+      DocOps.addFrame(doc, session);
+      DocOps.setActiveFrame(doc, session, 0);
+      doc.getCell(0, 0)!.setPx(0, 0, RED);
+      DocOps.setActiveFrame(doc, session, 1);
+      doc.getCell(1, 0)!.setPx(0, 0, GREEN);
+      DocOps.setActiveFrame(doc, session, 2);
+      doc.getCell(2, 0)!.setPx(0, 0, BLUE);
+      // [R,G,B] → 帧 1 右移 → [R,B,G]；活动帧（原 2=BLUE）随内容跟到 1。
+      expect(DocOps.moveFrame(doc, session, 1, 1)).assertTrue();
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(BLUE);
+      expect(doc.cells[2][0].getPx(0, 0)).assertEqual(GREEN);
+      expect(doc.activeFrame).assertEqual(1);
+      expect(session.activeFrame).assertEqual(1);
+      session.undo();
+      expect(doc.cells[0][0].getPx(0, 0)).assertEqual(RED);
+      expect(doc.cells[1][0].getPx(0, 0)).assertEqual(GREEN);
+      expect(doc.cells[2][0].getPx(0, 0)).assertEqual(BLUE);
+      // 撤销后活动帧恢复到操作前（2=BLUE）。
+      expect(doc.activeFrame).assertEqual(2);
+      // 越界移动拒绝。
+      expect(DocOps.moveFrame(doc, session, 0, -1)).assertFalse();
+      expect(DocOps.moveFrame(doc, session, 2, 1)).assertFalse();
+    });
+
+    it('DocOps_set_active_frame_no_undo', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      DocOps.addFrame(doc, session);
+      // 切帧成功且不入撤销栈、不置脏：仅 tick 驱动重渲染。
+      const tickBefore = session.tick;
+      expect(DocOps.setActiveFrame(doc, session, 1)).assertTrue();
+      expect(doc.activeFrame).assertEqual(1);
+      expect(session.activeFrame).assertEqual(1);
+      expect(session.tick).assertEqual(tickBefore + 1);
+      expect(DocOps.setActiveFrame(doc, session, 0)).assertTrue();
+      // 撤销栈中仅 addFrame 一条：一次 undo 即回单帧。
+      session.undo();
+      expect(doc.frameCount).assertEqual(1);
+      expect(doc.activeFrame).assertEqual(0);
+      expect(session.canUndo).assertFalse();
+      expect(DocOps.setActiveFrame(doc, session, 5)).assertFalse();
+    });
+
+    it('DocOps_frame_ops_stop_playing', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      session.playing = true;
+      expect(DocOps.addFrame(doc, session)).assertTrue();
+      expect(session.playing).assertFalse();
+      session.playing = true;
+      expect(DocOps.duplicateFrame(doc, session, 0)).assertTrue();
+      expect(session.playing).assertFalse();
+      session.playing = true;
+      expect(DocOps.deleteFrame(doc, session, 1)).assertTrue();
+      expect(session.playing).assertFalse();
+      session.playing = true;
+      expect(DocOps.moveFrame(doc, session, 0, 1)).assertTrue();
+      expect(session.playing).assertFalse();
+      session.playing = true;
+      expect(DocOps.setActiveFrame(doc, session, 0)).assertTrue();
+      expect(session.playing).assertFalse();
+    });
+
+    it('DocOps_session_undo_redo_stop_playing', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      DocOps.addFrame(doc, session);
+      session.playing = true;
+      session.undo();
+      expect(session.playing).assertFalse();
+      session.playing = true;
+      session.redo();
+      expect(session.playing).assertFalse();
     });
   });
 }

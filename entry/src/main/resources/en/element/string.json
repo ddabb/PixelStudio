@@ -219,6 +219,134 @@
     {
       "name": "sel_cancel",
       "value": "Cancel Selection"
+    },
+    {
+      "name": "tab_frames",
+      "value": "Frames"
+    },
+    {
+      "name": "frame_add",
+      "value": "＋"
+    },
+    {
+      "name": "frame_add_full",
+      "value": "Add Frame"
+    },
+    {
+      "name": "frame_duplicate",
+      "value": "Duplicate"
+    },
+    {
+      "name": "frame_delete",
+      "value": "Delete Frame"
+    },
+    {
+      "name": "frame_move_left",
+      "value": "Move Left"
+    },
+    {
+      "name": "frame_move_right",
+      "value": "Move Right"
+    },
+    {
+      "name": "frame_play",
+      "value": "Play"
+    },
+    {
+      "name": "frame_stop",
+      "value": "Stop"
+    },
+    {
+      "name": "frame_fps",
+      "value": "FPS"
+    },
+    {
+      "name": "frame_onion",
+      "value": "Onion Skin"
+    },
+    {
+      "name": "palette_title",
+      "value": "Palettes"
+    },
+    {
+      "name": "palette_close",
+      "value": "Close"
+    },
+    {
+      "name": "palette_current_color",
+      "value": "Current Color"
+    },
+    {
+      "name": "palette_open_btn",
+      "value": "＋"
+    },
+    {
+      "name": "palette_new",
+      "value": "New"
+    },
+    {
+      "name": "palette_name_hint",
+      "value": "Enter palette name"
+    },
+    {
+      "name": "palette_add_color",
+      "value": "Add Current"
+    },
+    {
+      "name": "palette_remove_color",
+      "value": "Remove Current"
+    },
+    {
+      "name": "palette_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "palette_recents",
+      "value": "Recent"
+    },
+    {
+      "name": "palette_picker",
+      "value": "Custom Color"
+    },
+    {
+      "name": "palette_hue",
+      "value": "Hue"
+    },
+    {
+      "name": "palette_saturation",
+      "value": "Sat"
+    },
+    {
+      "name": "palette_brightness",
+      "value": "Bright"
+    },
+    {
+      "name": "palette_apply",
+      "value": "Apply"
+    },
+    {
+      "name": "palette_name_pico8",
+      "value": "PICO-8"
+    },
+    {
+      "name": "palette_name_gbdmg",
+      "value": "GameBoy DMG"
+    },
+    {
+      "name": "palette_name_gray",
+      "value": "Grayscale"
+    },
+    {
+      "name": "palette_name_cga",
+      "value": "CGA"
+    },
+    {
+      "name": "palette_name_bead_perler",
+      "value": "Perler Beads"
+    },
+    {
+      "name": "palette_name_bead_hama",
+      "value": "Hama Beads"
     }
   ]
 }

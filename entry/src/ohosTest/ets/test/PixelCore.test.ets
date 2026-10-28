@@ -13,6 +13,9 @@ import { Compose } from '../../../main/ets/core/Compose';
 import { FloodFill } from '../../../main/ets/core/FloodFill';
 import { UndoStack } from '../../../main/ets/core/UndoStack';
 import { GestureTracker, GestureSink } from '../../../main/ets/core/GestureTracker';
+import { ColorUtil } from '../../../main/ets/core/ColorUtil';
+import { Palettes, BeadColor } from '../../../main/ets/core/Palettes';
+import { BeadQuantize } from '../../../main/ets/core/BeadQuantize';
 
 class RecordingSink implements GestureSink {
   log: string[] = [];
@@ -724,6 +727,210 @@ export default function pixelCoreTest() {
       expect(sink.log.length).assertEqual(3);
       t.move(1, 10, 20);
       expect(sink.log[3]).assertEqual('gm:30,10,30,15,1.03');
+    });
+
+    // ---------- ColorUtil（M3） ----------
+    it('ColorUtil_fromHsb_primary_rgb', 0, () => {
+      expect(ColorUtil.fromHsb(0, 100, 100)).assertEqual(RED);
+      expect(ColorUtil.fromHsb(120, 100, 100)).assertEqual(GREEN);
+      expect(ColorUtil.fromHsb(240, 100, 100)).assertEqual(BLUE);
+    });
+
+    it('ColorUtil_toHsb_primary_rgb', 0, () => {
+      const r = ColorUtil.toHsb(RED);
+      expect(r.h).assertEqual(0);
+      expect(r.s).assertEqual(100);
+      expect(r.b).assertEqual(100);
+      const g = ColorUtil.toHsb(GREEN);
+      expect(g.h).assertEqual(120);
+      expect(g.s).assertEqual(100);
+      const b = ColorUtil.toHsb(BLUE);
+      expect(b.h).assertEqual(240);
+      expect(b.b).assertEqual(100);
+    });
+
+    it('ColorUtil_hsb_gray_sat_zero', 0, () => {
+      const hsb = ColorUtil.toHsb(0xFF808080);
+      expect(hsb.s).assertEqual(0);
+      expect(hsb.b).assertEqual(50);
+      const black = ColorUtil.toHsb(BLACK);
+      expect(black.s).assertEqual(0);
+      expect(black.b).assertEqual(0);
+    });
+
+    it('ColorUtil_parseHex_valid', 0, () => {
+      expect(ColorUtil.parseHex('#FF0000')).assertEqual(RED);
+      expect(ColorUtil.parseHex('ff0000')).assertEqual(RED);
+      expect(ColorUtil.parseHex('#00ff00')).assertEqual(GREEN);
+      expect(ColorUtil.parseHex(' #FFFFFF ')).assertEqual(WHITE);
+    });
+
+    it('ColorUtil_parseHex_invalid', 0, () => {
+      expect(ColorUtil.parseHex('#FFF')).assertUndefined();
+      expect(ColorUtil.parseHex('#GG0000')).assertUndefined();
+      expect(ColorUtil.parseHex('')).assertUndefined();
+      expect(ColorUtil.parseHex('#12345')).assertUndefined();
+    });
+
+    it('ColorUtil_toHex_format', 0, () => {
+      expect(ColorUtil.toHex(RED)).assertEqual('#FF0000');
+      expect(ColorUtil.toHex(0xFF0A0B0C)).assertEqual('#0A0B0C');
+      expect(ColorUtil.toHex(BLACK)).assertEqual('#000000');
+    });
+
+    // ---------- Palettes（M3） ----------
+    it('Palettes_builtin_counts', 0, () => {
+      const list = Palettes.builtinPalettes();
+      expect(list.length).assertEqual(6);
+      expect(list[0].colors.length).assertEqual(16);
+      expect(list[1].colors.length).assertEqual(4);
+      expect(list[2].colors.length).assertEqual(8);
+      expect(list[3].colors.length).assertEqual(16);
+      expect(list[4].colors.length).assertEqual(Palettes.PERLER.colors.length);
+      expect(list[5].colors.length).assertEqual(Palettes.HAMA.colors.length);
+    });
+
+    it('Palettes_builtin_ids_unique', 0, () => {
+      const list = Palettes.builtinPalettes();
+      const ids: string[] = [];
+      for (const p of list) {
+        ids.push(p.id);
+      }
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          expect(ids[i] === ids[j]).assertFalse();
+        }
+      }
+    });
+
+    it('Palettes_bead_brand_tables', 0, () => {
+      expect(Palettes.PERLER.colors.length <= 128).assertTrue();
+      expect(Palettes.HAMA.colors.length <= 128).assertTrue();
+      expect(Palettes.PERLER.colors.length).assertEqual(36);
+      expect(Palettes.HAMA.colors.length).assertEqual(32);
+      const codes: string[] = [];
+      for (const c of Palettes.PERLER.colors) {
+        codes.push(c.code);
+      }
+      for (const c of Palettes.HAMA.colors) {
+        codes.push(c.code);
+      }
+      for (let i = 0; i < codes.length; i++) {
+        for (let j = i + 1; j < codes.length; j++) {
+          expect(codes[i] === codes[j]).assertFalse();
+        }
+      }
+      expect(Palettes.beadBrand('perler') !== undefined).assertTrue();
+      expect(Palettes.beadBrand('hama') !== undefined).assertTrue();
+      expect(Palettes.beadBrand('nope')).assertUndefined();
+    });
+
+    // ---------- BeadQuantize（M3，§6.7） ----------
+    it('BeadQuantize_exact_match', 0, () => {
+      const beads = Palettes.PERLER.colors;
+      // P09 红 (ED,1C,24)。
+      expect(BeadQuantize.nearestIndex(0xED, 0x1C, 0x24, beads)).assertEqual(8);
+    });
+
+    it('BeadQuantize_weighted_g_dominates', 0, () => {
+      const beads: BeadColor[] = [
+        new BeadColor('A', 'red-ish', 'FF8080'),
+        new BeadColor('B', 'green-ish', '80FF80')
+      ];
+      // (230,230,128) 到两色未加权等距；加权 d²=2Δr²+4Δg²+3Δb² → g 通道主导 → 选 B。
+      expect(BeadQuantize.nearestIndex(230, 230, 128, beads)).assertEqual(1);
+    });
+
+    it('BeadQuantize_tie_smaller_index', 0, () => {
+      const beads: BeadColor[] = [
+        new BeadColor('A', 'a', 'FF0000'),
+        new BeadColor('B', 'b', 'FF0000')
+      ];
+      expect(BeadQuantize.nearestIndex(250, 0, 0, beads)).assertEqual(0);
+    });
+
+    it('BeadQuantize_alpha_empty_peg', 0, () => {
+      const beads = Palettes.PERLER.colors;
+      const rgba = new Uint8Array(8);
+      rgba[4] = 0xED;
+      rgba[5] = 0x1C;
+      rgba[6] = 0x24;
+      rgba[7] = 255;
+      const out = BeadQuantize.quantize(rgba, 2, 1, beads);
+      expect(out[0]).assertEqual(-1);
+      expect(out[1]).assertEqual(8);
+    });
+
+    it('BeadQuantize_render_preview', 0, () => {
+      const beads = Palettes.PERLER.colors;
+      const indices = new Int32Array([-1, 8]);
+      const out = new Uint8Array(8);
+      BeadQuantize.renderPreview(indices, beads, out);
+      expect(out[0]).assertEqual(0);
+      expect(out[3]).assertEqual(0);
+      expect(out[4]).assertEqual(0xED);
+      expect(out[5]).assertEqual(0x1C);
+      expect(out[6]).assertEqual(0x24);
+      expect(out[7]).assertEqual(255);
+    });
+
+    it('BeadQuantize_deterministic_and_readonly', 0, () => {
+      const beads = Palettes.HAMA.colors;
+      const rgba = new Uint8Array(64 * 4);
+      for (let i = 0; i < 64; i++) {
+        rgba[i * 4] = (i * 7) % 256;
+        rgba[i * 4 + 1] = (i * 13) % 256;
+        rgba[i * 4 + 2] = (i * 29) % 256;
+        rgba[i * 4 + 3] = i % 3 === 0 ? 0 : 255;
+      }
+      const a = BeadQuantize.quantize(rgba, 8, 8, beads);
+      const b = BeadQuantize.quantize(rgba, 8, 8, beads);
+      for (let i = 0; i < a.length; i++) {
+        expect(a[i]).assertEqual(b[i]);
+      }
+      expect(rgba[3]).assertEqual(0);
+      expect(rgba[7]).assertEqual(255);
+    });
+
+    // ---------- Compose.blendOver：洋葱皮（M3） ----------
+    it('Compose_blendOver_30_on_transparent', 0, () => {
+      const base = new Uint8Array(4);
+      const overlay = new Uint8Array([0, 0, 0, 255]);
+      Compose.blendOver(base, overlay, 30);
+      expect(base[0]).assertEqual(0);
+      expect(base[1]).assertEqual(0);
+      expect(base[2]).assertEqual(0);
+      expect(base[3]).assertEqual(77);
+    });
+
+    it('Compose_blendOver_30_on_opaque', 0, () => {
+      const base = new Uint8Array([255, 255, 255, 255]);
+      const overlay = new Uint8Array([0, 0, 0, 255]);
+      Compose.blendOver(base, overlay, 30);
+      expect(base[0]).assertEqual(178);
+      expect(base[1]).assertEqual(178);
+      expect(base[2]).assertEqual(178);
+      expect(base[3]).assertEqual(255);
+    });
+
+    it('Compose_blendOver_full_strength_equals_overlay', 0, () => {
+      const base = new Uint8Array([255, 0, 0, 255]);
+      const overlay = new Uint8Array([0, 0, 255, 255]);
+      Compose.blendOver(base, overlay, 100);
+      expect(base[0]).assertEqual(0);
+      expect(base[1]).assertEqual(0);
+      expect(base[2]).assertEqual(255);
+      expect(base[3]).assertEqual(255);
+    });
+
+    it('Compose_blendOver_transparent_overlay_noop', 0, () => {
+      const base = new Uint8Array([255, 0, 0, 255]);
+      const overlay = new Uint8Array([0, 255, 0, 0]);
+      Compose.blendOver(base, overlay, 30);
+      expect(base[0]).assertEqual(255);
+      expect(base[1]).assertEqual(0);
+      expect(base[2]).assertEqual(0);
+      expect(base[3]).assertEqual(255);
     });
   });
 }

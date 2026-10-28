@@ -51,4 +51,47 @@ export class Compose {
       }
     }
   }
+
+  /** 洋葱皮叠加（M3）：overlay 以 strengthPct% 强度 source-over 混到 base 上（原位改 base）。
+   *  上一帧 30% 透明叠加用 blendOver(base, prev, 30)；零分配（复用调用方缓冲）。 */
+  static blendOver(base: Uint8Array, overlay: Uint8Array, strengthPct: number): void {
+    const k = Math.max(0, Math.min(100, strengthPct));
+    if (k <= 0) {
+      return;
+    }
+    for (let i = 0; i < base.length; i += 4) {
+      const oa = overlay[i + 3];
+      if (oa === 0) {
+        continue;
+      }
+      const ga = k >= 100 ? oa : Math.round(oa * k / 100);
+      if (ga <= 0) {
+        continue;
+      }
+      const ba = base[i + 3];
+      if (ga >= 255) {
+        base[i] = overlay[i];
+        base[i + 1] = overlay[i + 1];
+        base[i + 2] = overlay[i + 2];
+        base[i + 3] = 255;
+        continue;
+      }
+      if (ba === 0) {
+        base[i] = overlay[i];
+        base[i + 1] = overlay[i + 1];
+        base[i + 2] = overlay[i + 2];
+        base[i + 3] = ga;
+        continue;
+      }
+      const wa = Math.round(ba * (255 - ga) / 255);
+      const na = ga + wa;
+      if (na <= 0) {
+        continue;
+      }
+      base[i] = Math.round((overlay[i] * ga + base[i] * wa) / na);
+      base[i + 1] = Math.round((overlay[i + 1] * ga + base[i + 1] * wa) / na);
+      base[i + 2] = Math.round((overlay[i + 2] * ga + base[i + 2] * wa) / na);
+      base[i + 3] = na;
+    }
+  }
 }

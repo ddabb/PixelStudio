@@ -219,6 +219,134 @@
     {
       "name": "sel_cancel",
       "value": "取消选区"
+    },
+    {
+      "name": "tab_frames",
+      "value": "帧"
+    },
+    {
+      "name": "frame_add",
+      "value": "＋"
+    },
+    {
+      "name": "frame_add_full",
+      "value": "新增帧"
+    },
+    {
+      "name": "frame_duplicate",
+      "value": "复制帧"
+    },
+    {
+      "name": "frame_delete",
+      "value": "删除帧"
+    },
+    {
+      "name": "frame_move_left",
+      "value": "左移"
+    },
+    {
+      "name": "frame_move_right",
+      "value": "右移"
+    },
+    {
+      "name": "frame_play",
+      "value": "播放"
+    },
+    {
+      "name": "frame_stop",
+      "value": "停止"
+    },
+    {
+      "name": "frame_fps",
+      "value": "帧率"
+    },
+    {
+      "name": "frame_onion",
+      "value": "洋葱皮"
+    },
+    {
+      "name": "palette_title",
+      "value": "调色板"
+    },
+    {
+      "name": "palette_close",
+      "value": "关闭"
+    },
+    {
+      "name": "palette_current_color",
+      "value": "当前色"
+    },
+    {
+      "name": "palette_open_btn",
+      "value": "＋"
+    },
+    {
+      "name": "palette_new",
+      "value": "新建"
+    },
+    {
+      "name": "palette_name_hint",
+      "value": "输入调色板名称"
+    },
+    {
+      "name": "palette_add_color",
+      "value": "加当前色"
+    },
+    {
+      "name": "palette_remove_color",
+      "value": "减当前色"
+    },
+    {
+      "name": "palette_delete",
+      "value": "删除"
+    },
+    {
+      "name": "palette_recents",
+      "value": "最近使用"
+    },
+    {
+      "name": "palette_picker",
+      "value": "自定义颜色"
+    },
+    {
+      "name": "palette_hue",
+      "value": "色相"
+    },
+    {
+      "name": "palette_saturation",
+      "value": "饱和度"
+    },
+    {
+      "name": "palette_brightness",
+      "value": "明度"
+    },
+    {
+      "name": "palette_apply",
+      "value": "应用"
+    },
+    {
+      "name": "palette_name_pico8",
+      "value": "PICO-8"
+    },
+    {
+      "name": "palette_name_gbdmg",
+      "value": "GameBoy DMG"
+    },
+    {
+      "name": "palette_name_gray",
+      "value": "灰阶"
+    },
+    {
+      "name": "palette_name_cga",
+      "value": "CGA"
+    },
+    {
+      "name": "palette_name_bead_perler",
+      "value": "拼豆·Perler"
+    },
+    {
+      "name": "palette_name_bead_hama",
+      "value": "拼豆·Hama"
     }
   ]
 }

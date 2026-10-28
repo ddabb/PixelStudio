@@ -211,6 +211,130 @@ export class DocOps {
     return true;
   }
 
+  // ---------- 帧：结构操作（M3，开发计划 §4.1 帧模块） ----------
+
+  private static syncFrameActive(doc: PixelDoc, session: EditorSession, fi: number): void {
+    doc.activeFrame = fi;
+    session.activeFrame = fi;
+  }
+
+  private static stopPlay(session: EditorSession): void {
+    if (session.playing) {
+      session.playing = false;
+    }
+  }
+
+  /** 切换活动帧（不入撤销栈、不置脏）；触发 tick 驱动画布重渲染（洋葱皮跟随）。 */
+  static setActiveFrame(doc: PixelDoc, session: EditorSession, fi: number): boolean {
+    if (fi < 0 || fi >= doc.frameCount) {
+      return false;
+    }
+    DocOps.stopPlay(session);
+    DocOps.syncFrameActive(doc, session, fi);
+    session.tick++;
+    return true;
+  }
+
+  /** 末尾新增空白帧并激活。 */
+  static addFrame(doc: PixelDoc, session: EditorSession): boolean {
+    DocOps.stopPlay(session);
+    const activeBefore = doc.activeFrame;
+    const fi = doc.frameCount;
+    doc.addFrame();
+    const row = doc.cells[fi];
+    DocOps.syncFrameActive(doc, session, fi);
+    session.undoStack.push(new DocEntry(
+      (): void => {
+        doc.removeFrame(fi);
+        DocOps.syncFrameActive(doc, session, activeBefore);
+      },
+      (): void => {
+        doc.insertFrame(fi, row);
+        DocOps.syncFrameActive(doc, session, fi);
+      }
+    ));
+    DocOps.bump(session);
+    return true;
+  }
+
+  /** 复制 fi 帧全部图层 cel，插入到 fi+1 并激活。 */
+  static duplicateFrame(doc: PixelDoc, session: EditorSession, fi: number): boolean {
+    if (fi < 0 || fi >= doc.frameCount) {
+      return false;
+    }
+    DocOps.stopPlay(session);
+    const activeBefore = doc.activeFrame;
+    const src = doc.cells[fi];
+    const row: PixelBuffer[] = [];
+    for (let li = 0; li < doc.layers.length; li++) {
+      row.push(src[li].clone());
+    }
+    doc.insertFrame(fi + 1, row);
+    DocOps.syncFrameActive(doc, session, fi + 1);
+    session.undoStack.push(new DocEntry(
+      (): void => {
+        doc.removeFrame(fi + 1);
+        DocOps.syncFrameActive(doc, session, activeBefore);
+      },
+      (): void => {
+        doc.insertFrame(fi + 1, row);
+        DocOps.syncFrameActive(doc, session, fi + 1);
+      }
+    ));
+    DocOps.bump(session);
+    return true;
+  }
+
+  /** 删除帧（至少保留 1 帧）；内容随行移除，撤销原位恢复。 */
+  static deleteFrame(doc: PixelDoc, session: EditorSession, fi: number): boolean {
+    if (doc.frameCount <= 1 || fi < 0 || fi >= doc.frameCount) {
+      return false;
+    }
+    DocOps.stopPlay(session);
+    const row = doc.cells[fi];
+    const activeBefore = doc.activeFrame;
+    doc.removeFrame(fi);
+    const activeAfter = doc.activeFrame;
+    session.activeFrame = activeAfter;
+    session.undoStack.push(new DocEntry(
+      (): void => {
+        doc.insertFrame(fi, row);
+        DocOps.syncFrameActive(doc, session, activeBefore);
+      },
+      (): void => {
+        doc.removeFrame(fi);
+        DocOps.syncFrameActive(doc, session, activeAfter);
+      }
+    ));
+    DocOps.bump(session);
+    return true;
+  }
+
+  /** dir=+1 与后一帧交换（时间轴右移），-1 左移。 */
+  static moveFrame(doc: PixelDoc, session: EditorSession, fi: number, dir: number): boolean {
+    const to = fi + dir;
+    if (fi < 0 || fi >= doc.frameCount || to < 0 || to >= doc.frameCount) {
+      return false;
+    }
+    DocOps.stopPlay(session);
+    const activeBefore = doc.activeFrame;
+    doc.swapFrame(fi, dir);
+    const activeAfter = doc.activeFrame;
+    session.activeFrame = activeAfter;
+    session.undoStack.push(new DocEntry(
+      (): void => {
+        doc.swapFrame(to, -dir);
+        DocOps.syncFrameActive(doc, session, activeBefore);
+      },
+      (): void => {
+        doc.swapFrame(fi, dir);
+        DocOps.syncFrameActive(doc, session, activeAfter);
+      }
+    ));
+    DocOps.bump(session);
+    return true;
+  }
+
   // ---------- 选区：内容操作（单 cel 像素快照撤销） ----------
 
   /** 复制选区：标记浮动副本（不写像素、不入撤销栈）；随后拖动选区移出副本，原件保留。 */

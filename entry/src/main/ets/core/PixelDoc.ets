@@ -100,6 +100,46 @@ export class PixelDoc {
     this.frameCount = this.cells.length;
   }
 
+  /** 结构性插入帧行（撤销重放通道）：行长度须等于层数，index 允许 0..frameCount。 */
+  insertFrame(index: number, row: PixelBuffer[]): boolean {
+    if (index < 0 || index > this.cells.length || row.length !== this.layers.length) {
+      return false;
+    }
+    this.cells.splice(index, 0, row);
+    this.frameCount = this.cells.length;
+    return true;
+  }
+
+  /** 删除帧（至少保留 1 帧）；活动帧越界回夹。 */
+  removeFrame(index: number): boolean {
+    if (index < 0 || index >= this.cells.length || this.cells.length <= 1) {
+      return false;
+    }
+    this.cells.splice(index, 1);
+    this.frameCount = this.cells.length;
+    if (this.activeFrame >= this.frameCount) {
+      this.activeFrame = this.frameCount - 1;
+    }
+    return true;
+  }
+
+  /** 相邻交换帧（含各层 cel）；活动帧随行移动。 */
+  swapFrame(index: number, dir: number): boolean {
+    const to = index + dir;
+    if (index < 0 || index >= this.cells.length || to < 0 || to >= this.cells.length) {
+      return false;
+    }
+    const row = this.cells[index];
+    this.cells[index] = this.cells[to];
+    this.cells[to] = row;
+    if (this.activeFrame === index) {
+      this.activeFrame = to;
+    } else if (this.activeFrame === to) {
+      this.activeFrame = index;
+    }
+    return true;
+  }
+
   getCell(frameIndex: number, layerIndex: number): PixelBuffer | undefined {
     if (frameIndex < 0 || frameIndex >= this.frameCount) {
       return undefined;

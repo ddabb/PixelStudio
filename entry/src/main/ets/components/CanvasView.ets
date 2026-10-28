@@ -26,6 +26,8 @@ const FRAME_MS = 16;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 32;
 const EYEDROP_LONG_PRESS_MS = 500;
+/** 洋葱皮：上一帧 30% 透明叠加（开发计划 §4.1）。 */
+const ONION_STRENGTH_PCT = 30;
 const FALLBACK_CHECKER_A = 0xFFFFFFFF;
 const FALLBACK_CHECKER_B = 0xFFC9C9D6;
 
@@ -38,6 +40,8 @@ export struct CanvasView {
   @Local checkerMap: image.PixelMap | undefined = undefined;
 
   private composeBuf: Uint8Array = new Uint8Array(0);
+  /** 洋葱皮缓冲：上一帧合成结果（编辑预览专用，播放时跳过）。 */
+  private onionBuf: Uint8Array = new Uint8Array(0);
   private tracker: GestureTracker | undefined = undefined;
   private areaW: number = 0;
   private areaH: number = 0;
@@ -66,6 +70,7 @@ export struct CanvasView {
 
   aboutToAppear(): void {
     this.composeBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
+    this.onionBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
     this.tracker = new GestureTracker(new CanvasSink(this));
     this.buildChecker();
     this.render();
@@ -100,6 +105,12 @@ export struct CanvasView {
     const t0 = Date.now();
     this.lastRenderAt = t0;
     Compose.composeFrame(this.doc, this.doc.activeFrame, this.composeBuf);
+    // 洋葱皮：编辑预览时将上一帧以 30% 幽灵叠加在当前帧之上（播放中不叠加，§4.1）。
+    if (this.session.onionSkin && !this.session.playing
+      && this.doc.activeFrame > 0 && this.onionBuf.length === this.composeBuf.length) {
+      Compose.composeFrame(this.doc, this.doc.activeFrame - 1, this.onionBuf);
+      Compose.blendOver(this.composeBuf, this.onionBuf, ONION_STRENGTH_PCT);
+    }
     const opts: image.InitializationOptions = {
       editable: false,
       pixelFormat: image.PixelMapFormat.RGBA_8888,
@@ -519,6 +530,11 @@ export struct CanvasView {
       return;
     }
     if (event.type === TouchType.Down) {
+      if (this.session.playing) {
+        // 播放中触屏：立即停播转为编辑，避免编辑被预览遮断。
+        this.session.playing = false;
+        this.render();
+      }
       hilog.info(DOMAIN, TAG, 'touch down, touches=%{public}d, tool=%{public}d',
         event.touches.length, this.session.currentTool);
       const instant = this.toolInstant();

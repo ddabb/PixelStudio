@@ -1,7 +1,9 @@
 /**
- * pages/EditorPage.ets — 编辑器主页（开发计划 §5.1，M1）：
+ * pages/EditorPage.ets — 编辑器主页（开发计划 §5.1，M1/M3）：
  * 顶栏（返回 + 工程名 + 尺寸 + 脏标记 + 撤销/重做） / 画布区 /
- * 工具行（7 工具 + 镜像 + 实心 + 网格三态） / 笔宽行 / 颜色行。
+ * 工具行（8 工具 + 镜像 + 实心 + 网格三态） / 笔宽行 / 调色板横滑行。
+ * 底部 Tab：画布 / 图层 / 帧（帧面板：缩略条 + 播放 + FPS + 洋葱皮）。
+ * 播放 = setInterval 循环推进 activeFrame + tick 驱动重渲染；任意触屏/撤销/帧操作即停。
  * 注意：@Builder 值传参在 V2 是快照不响应，所有会变的状态一律在 Builder 体内读取。
  */
 
@@ -9,21 +11,84 @@ import { PixelDoc } from '../core/PixelDoc';
 import { UndoStack } from '../core/UndoStack';
 import { EditorSession, Tool, GridMode } from '../viewmodel/EditorSession';
 import { DocOps } from '../viewmodel/DocOps';
+import { PaletteStore } from '../viewmodel/PaletteStore';
 import { CanvasView } from '../components/CanvasView';
 import { LayerPanel } from '../components/LayerPanel';
+import { FrameStrip } from '../components/FrameStrip';
+import { PaletteBar } from '../components/PaletteBar';
+import { PalettePanel } from '../components/PalettePanel';
 
-const SWATCH_COLORS: number[] = [
-  0xFF000000, 0xFFFFFFFF, 0xFFE23636, 0xFFF7B32B,
-  0xFF43B76A, 0xFF2D7DD2, 0xFF7C4DBC, 0xFF8A6B3D
-];
+/** 播放定时器最小间隔（ms）：对齐 60Hz 帧节流，防高 FPS 空转。 */
+const PLAY_TICK_MS = 16;
 
 @Entry
 @ComponentV2
 struct EditorPage {
   doc: PixelDoc = new PixelDoc(64, 64);
   @Local session: EditorSession = new EditorSession();
-  /** 底部面板模式：0=画布 1=图层。 */
+  /** 底部面板模式：0=画布 1=图层 2=帧。 */
   @Local panelMode: number = 0;
+  /** 调色板面板覆盖层（覆盖内容区，不影响底部工具行）。 */
+  @Local paletteOpen: boolean = false;
+  @Local paletteStore: PaletteStore = new PaletteStore();
+  private playTimerId: number = -1;
+
+  aboutToAppear(): void {
+    const ctx = this.getUIContext().getHostContext();
+    if (ctx !== undefined && ctx !== null) {
+      this.paletteStore.load(ctx);
+    }
+  }
+
+  aboutToDisappear(): void {
+    this.stopPlayback();
+    this.paletteStore.saveNow();
+  }
+
+  // ---------- 播放（§4.1：循环预览，触屏/撤销/帧操作即停） ----------
+
+  private startPlayback(): void {
+    this.stopPlayback();
+    const interval = Math.max(PLAY_TICK_MS, Math.round(1000 / this.session.fps));
+    this.playTimerId = setInterval(() => {
+      this.doc.activeFrame = (this.doc.activeFrame + 1) % this.doc.frameCount;
+      this.session.activeFrame = this.doc.activeFrame;
+      this.session.tick++;
+    }, interval);
+  }
+
+  private stopPlayback(): void {
+    if (this.playTimerId !== -1) {
+      clearInterval(this.playTimerId);
+      this.playTimerId = -1;
+    }
+  }
+
+  @Monitor('session.playing')
+  onPlayingChange(): void {
+    if (this.session.playing) {
+      if (this.doc.frameCount > 1) {
+        this.startPlayback();
+      } else {
+        this.session.playing = false;
+      }
+    } else {
+      this.stopPlayback();
+    }
+  }
+
+  @Monitor('session.fps')
+  onFpsChange(): void {
+    if (this.session.playing) {
+      this.startPlayback();
+    }
+  }
+
+  /** 当前色变化 → 记入最近使用（PaletteBar/取色器/吸管统一入口）。 */
+  @Monitor('session.color')
+  onColorChange(): void {
+    this.paletteStore.pushRecent(this.session.color);
+  }
 
   private clearCanvas(): void {
     const cell = this.doc.activeCell();
@@ -169,29 +234,11 @@ struct EditorPage {
       })
   }
 
-  @Builder
-  swatch(color: number) {
-    Column()
-      .width(32)
-      .height(32)
-      .borderRadius(8)
-      .backgroundColor(color)
-      .border({
-        width: this.session.color === color ? 3 : 1,
-        color: this.session.color === color ? $r('app.color.brand') : $r('app.color.border_color')
-      })
-      .onClick(() => {
-        this.session.color = color;
-        if (this.session.currentTool === Tool.Eraser) {
-          this.session.currentTool = Tool.Pencil;
-        }
-      })
-  }
-
-  /** 底部 Tab：mode 0=画布 1=图层；激活态在体内读取 panelMode。 */
+  /** 底部 Tab：mode 0=画布 1=图层 2=帧；激活态在体内读取 panelMode。 */
   @Builder
   tabButton(mode: number) {
-    Button(mode === 0 ? $r('app.string.tab_canvas') : $r('app.string.tab_layers'))
+    Button(mode === 0 ? $r('app.string.tab_canvas')
+      : (mode === 1 ? $r('app.string.tab_layers') : $r('app.string.tab_frames')))
       .type(ButtonType.Normal)
       .borderRadius(10)
       .height(36)
@@ -203,6 +250,10 @@ struct EditorPage {
         ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
       .onClick(() => {
         this.panelMode = mode;
+        if (mode !== 0 && this.session.playing) {
+          // 画布不可见时终止循环预览，避免空转定时器。
+          this.session.playing = false;
+        }
       })
   }
 
@@ -292,11 +343,30 @@ struct EditorPage {
       .padding({ left: 12, right: 12, top: 12, bottom: 8 })
       .backgroundColor($r('app.color.card_background'))
 
-      // 内容区：画布常驻 + 图层面板 Stack 叠放（Tab 切换，画布不重挂载）
+      // 内容区：画布常驻 + 面板 Stack 叠放（Tab 切换，画布不重挂载）
       Stack() {
         CanvasView({ doc: this.doc, session: this.session })
         if (this.panelMode === 1) {
           LayerPanel({ doc: this.doc, session: this.session })
+        }
+        if (this.panelMode === 2) {
+          FrameStrip({
+            doc: this.doc,
+            session: this.session,
+            onPlay: (): void => {
+              // 循环预览需画布可见：播放启动即切回画布 Tab。
+              this.panelMode = 0;
+            }
+          })
+        }
+        if (this.paletteOpen) {
+          PalettePanel({
+            session: this.session,
+            store: this.paletteStore,
+            onClose: (): void => {
+              this.paletteOpen = false;
+            }
+          })
         }
       }
       .layoutWeight(1)
@@ -357,21 +427,24 @@ struct EditorPage {
           .backgroundColor($r('app.color.card_background'))
         }
 
-        // 颜色行
-        Row({ space: 8 }) {
-          ForEach(SWATCH_COLORS, (color: number) => {
-            this.swatch(color)
-          }, (color: number) => color.toString())
-        }
-        .width('100%')
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-        .backgroundColor($r('app.color.card_background'))
+        // 调色板横滑行（当前色 + 活动调色板色卡 + ＋面板）
+        PaletteBar({
+          session: this.session,
+          store: this.paletteStore,
+          onOpenPanel: (): void => {
+            if (this.session.playing) {
+              this.session.playing = false;
+            }
+            this.paletteOpen = true;
+          }
+        })
       }
 
-      // 底部 Tab：画布 / 图层
+      // 底部 Tab：画布 / 图层 / 帧
       Row({ space: 8 }) {
         this.tabButton(0)
         this.tabButton(1)
+        this.tabButton(2)
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 8, bottom: 10 })

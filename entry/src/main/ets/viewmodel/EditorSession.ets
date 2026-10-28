@@ -58,6 +58,13 @@ export class EditorSession {
   @Trace canRedo: boolean = false;
   /** 活动图层索引（与 doc.activeLayer 同步，供图层面板/CanvasView 响应）。 */
   @Trace activeLayer: number = 0;
+  /** 活动帧索引（与 doc.activeFrame 同步，供帧面板/CanvasView 响应）。 */
+  @Trace activeFrame: number = 0;
+  /** 播放预览（M3）：FPS 1-30 可调默认 8；任意触屏即停。 */
+  @Trace fps: number = 8;
+  @Trace playing: boolean = false;
+  /** 洋葱皮（M3）：上一帧 30% 透明叠加开关。 */
+  @Trace onionSkin: boolean = false;
   /** 矩形选区（Selection 工具）；undefined = 无选区。 */
   @Trace sel: SelRect | undefined = undefined;
   /** 选区浮动副本标记：复制后拖动选区 = 移出副本（原件保留），提交或取消后复位。 */
@@ -71,6 +78,7 @@ export class EditorSession {
 
   /** 撤销/重做后由 CanvasView 监听 tick 重渲染；栈内快照直接写回 cellData。 */
   undo(): void {
+    this.playing = false;
     if (this.undoStack.undo() !== undefined) {
       this.dirty = true;
       this.tick++;
@@ -79,6 +87,7 @@ export class EditorSession {
   }
 
   redo(): void {
+    this.playing = false;
     if (this.undoStack.redo() !== undefined) {
       this.dirty = true;
       this.tick++;
