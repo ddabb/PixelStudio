@@ -588,6 +588,33 @@ export struct CanvasView {
     }
   }
 
+  /** 无障碍：当前工具本地化名（tool_* 资源键按 Tool 枚举映射）。 */
+  private toolLabel(): string {
+    const ctx = this.getUIContext().getHostContext();
+    if (ctx === undefined) {
+      return '';
+    }
+    const key: string = this.session.currentTool === Tool.Pencil ? 'tool_pencil'
+      : (this.session.currentTool === Tool.Eraser ? 'tool_eraser'
+        : (this.session.currentTool === Tool.Fill ? 'tool_fill'
+          : (this.session.currentTool === Tool.Line ? 'tool_line'
+            : (this.session.currentTool === Tool.Rect ? 'tool_rect'
+              : (this.session.currentTool === Tool.Ellipse ? 'tool_ellipse'
+                : (this.session.currentTool === Tool.Eyedropper ? 'tool_eyedropper'
+                  : 'tool_selection'))))));
+    try {
+      return ctx.resourceManager.getStringByNameSync(key);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /** 无障碍播报（§5.3）：“X×Y 像素画布，当前工具 Z，缩放 N×”。 */
+  private a11yText(): Resource {
+    return $r('app.string.canvas_a11y', this.doc.w, this.doc.h,
+      this.toolLabel(), Math.round(this.session.zoom));
+  }
+
   build() {
     Stack() {
       Stack() {
@@ -629,6 +656,7 @@ export struct CanvasView {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.canvas_backdrop'))
+    .accessibilityText(this.a11yText())
     .onTouch((event: TouchEvent) => {
       this.handleTouch(event);
     })

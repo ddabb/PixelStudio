@@ -347,6 +347,194 @@
     {
       "name": "palette_name_bead_hama",
       "value": "Hama Beads"
+    },
+    {
+      "name": "tab_export",
+      "value": "Export"
+    },
+    {
+      "name": "export_format_png",
+      "value": "PNG"
+    },
+    {
+      "name": "export_format_gif",
+      "value": "GIF"
+    },
+    {
+      "name": "export_format_chart",
+      "value": "Bead chart"
+    },
+    {
+      "name": "export_scale_label",
+      "value": "Scale"
+    },
+    {
+      "name": "export_output_size",
+      "value": "Output size %1$d×%2$d"
+    },
+    {
+      "name": "export_gif_palette_mode",
+      "value": "Palette"
+    },
+    {
+      "name": "export_gif_auto",
+      "value": "Auto colors"
+    },
+    {
+      "name": "export_gif_use_palette",
+      "value": "Current palette"
+    },
+    {
+      "name": "export_transparent",
+      "value": "Transparent"
+    },
+    {
+      "name": "export_dither",
+      "value": "Dither"
+    },
+    {
+      "name": "export_share",
+      "value": "Share"
+    },
+    {
+      "name": "export_busy",
+      "value": "Processing…"
+    },
+    {
+      "name": "export_saved_toast",
+      "value": "Saved to album"
+    },
+    {
+      "name": "export_failed_toast",
+      "value": "Export failed"
+    },
+    {
+      "name": "export_share_failed_toast",
+      "value": "Cannot open share panel"
+    },
+    {
+      "name": "export_chart_summary",
+      "value": "%1$d beads · %2$d colors · %3$d boards (29×29)"
+    },
+    {
+      "name": "export_chart_materials",
+      "value": "Materials"
+    },
+    {
+      "name": "export_chart_note",
+      "value": "Based on current frame"
+    },
+    {
+      "name": "export_chart_count",
+      "value": "%1$d beads"
+    },
+    {
+      "name": "export_chart_packs",
+      "value": "%1$d packs"
+    },
+    {
+      "name": "project_new",
+      "value": "New project"
+    },
+    {
+      "name": "project_create",
+      "value": "Create"
+    },
+    {
+      "name": "project_name_hint",
+      "value": "Project name"
+    },
+    {
+      "name": "project_name_default",
+      "value": "Untitled"
+    },
+    {
+      "name": "project_size_label",
+      "value": "Canvas size"
+    },
+    {
+      "name": "project_rename",
+      "value": "Rename"
+    },
+    {
+      "name": "project_rename_hint",
+      "value": "New name"
+    },
+    {
+      "name": "project_rename_failed",
+      "value": "Rename failed"
+    },
+    {
+      "name": "project_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "project_delete_confirm",
+      "value": "Confirm delete"
+    },
+    {
+      "name": "project_empty",
+      "value": "No projects yet"
+    },
+    {
+      "name": "project_empty_hint",
+      "value": "Tap \"New project\" to start creating"
+    },
+    {
+      "name": "project_corrupt",
+      "value": "Corrupted"
+    },
+    {
+      "name": "project_load_failed",
+      "value": "Failed to open project. A blank canvas was created."
+    },
+    {
+      "name": "project_save_failed",
+      "value": "Save failed"
+    },
+    {
+      "name": "editor_loading",
+      "value": "Opening project…"
+    },
+    {
+      "name": "app_name",
+      "value": "PixelStudio"
+    },
+    {
+      "name": "project_record_meta",
+      "value": "%1$d×%2$d · %3$d frames · %4$d layers · %5$s"
+    },
+    {
+      "name": "project_copy",
+      "value": "Duplicate"
+    },
+    {
+      "name": "project_copy_failed",
+      "value": "Duplicate failed"
+    },
+    {
+      "name": "project_copy_suffix",
+      "value": "copy"
+    },
+    {
+      "name": "about_title",
+      "value": "About"
+    },
+    {
+      "name": "about_buyout",
+      "value": "One-time purchase. No ads, no subscriptions. Your purchase is tied to your HUAWEI ID — reinstall for free anytime."
+    },
+    {
+      "name": "canvas_a11y",
+      "value": "%1$d×%2$d pixel canvas, tool %3$s, zoom %4$d×"
+    },
+    {
+      "name": "export_estimated_size",
+      "value": "Estimated size ~%1$s"
+    },
+    {
+      "name": "export_bead_preview",
+      "value": "Bead color preview"
     }
   ]
 }

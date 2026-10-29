@@ -1,6 +1,7 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { AppCtx } from '../viewmodel/AppCtx';
 
 const DOMAIN = 0x0001;
 const TAG = 'PixelStudio';
@@ -16,8 +17,9 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, TAG, '%{public}s', 'Ability onWindowStageCreate');
+    AppCtx.uiContext = this.context;
 
-    windowStage.loadContent('pages/Index', (err) => {
+    windowStage.loadContent('pages/ProjectListPage', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, TAG, 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;

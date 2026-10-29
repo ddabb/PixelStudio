@@ -140,6 +140,13 @@ export class PixelDoc {
     return true;
   }
 
+  /** 工程恢复（M4）：外部载入的图层 id 抬高 nextLayerId，防后续新建图层 id 撞号。 */
+  ensureLayerIdAbove(id: number): void {
+    if (id >= this.nextLayerId) {
+      this.nextLayerId = id + 1;
+    }
+  }
+
   getCell(frameIndex: number, layerIndex: number): PixelBuffer | undefined {
     if (frameIndex < 0 || frameIndex >= this.frameCount) {
       return undefined;

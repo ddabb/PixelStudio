@@ -347,6 +347,194 @@
     {
       "name": "palette_name_bead_hama",
       "value": "拼豆·Hama"
+    },
+    {
+      "name": "tab_export",
+      "value": "导出"
+    },
+    {
+      "name": "export_format_png",
+      "value": "PNG"
+    },
+    {
+      "name": "export_format_gif",
+      "value": "GIF"
+    },
+    {
+      "name": "export_format_chart",
+      "value": "拼豆图纸"
+    },
+    {
+      "name": "export_scale_label",
+      "value": "放大"
+    },
+    {
+      "name": "export_output_size",
+      "value": "输出尺寸 %1$d×%2$d"
+    },
+    {
+      "name": "export_gif_palette_mode",
+      "value": "调色板"
+    },
+    {
+      "name": "export_gif_auto",
+      "value": "自动配色"
+    },
+    {
+      "name": "export_gif_use_palette",
+      "value": "当前调色板"
+    },
+    {
+      "name": "export_transparent",
+      "value": "透明背景"
+    },
+    {
+      "name": "export_dither",
+      "value": "抖动"
+    },
+    {
+      "name": "export_share",
+      "value": "分享"
+    },
+    {
+      "name": "export_busy",
+      "value": "处理中…"
+    },
+    {
+      "name": "export_saved_toast",
+      "value": "已保存到相册"
+    },
+    {
+      "name": "export_failed_toast",
+      "value": "导出失败"
+    },
+    {
+      "name": "export_share_failed_toast",
+      "value": "分享面板打开失败"
+    },
+    {
+      "name": "export_chart_summary",
+      "value": "共 %1$d 颗 · %2$d 色 · %3$d 板（29×29）"
+    },
+    {
+      "name": "export_chart_materials",
+      "value": "材料清单"
+    },
+    {
+      "name": "export_chart_note",
+      "value": "基于当前帧统计"
+    },
+    {
+      "name": "export_chart_count",
+      "value": "%1$d 颗"
+    },
+    {
+      "name": "export_chart_packs",
+      "value": "%1$d 包"
+    },
+    {
+      "name": "project_new",
+      "value": "新建工程"
+    },
+    {
+      "name": "project_create",
+      "value": "创建"
+    },
+    {
+      "name": "project_name_hint",
+      "value": "输入工程名称"
+    },
+    {
+      "name": "project_name_default",
+      "value": "未命名工程"
+    },
+    {
+      "name": "project_size_label",
+      "value": "画布尺寸"
+    },
+    {
+      "name": "project_rename",
+      "value": "重命名"
+    },
+    {
+      "name": "project_rename_hint",
+      "value": "输入新名称"
+    },
+    {
+      "name": "project_rename_failed",
+      "value": "重命名失败"
+    },
+    {
+      "name": "project_delete",
+      "value": "删除"
+    },
+    {
+      "name": "project_delete_confirm",
+      "value": "确认删除"
+    },
+    {
+      "name": "project_empty",
+      "value": "暂无工程"
+    },
+    {
+      "name": "project_empty_hint",
+      "value": "点击“新建工程”开始创作"
+    },
+    {
+      "name": "project_corrupt",
+      "value": "文件损坏"
+    },
+    {
+      "name": "project_load_failed",
+      "value": "工程打开失败，已新建空白画布"
+    },
+    {
+      "name": "project_save_failed",
+      "value": "保存失败"
+    },
+    {
+      "name": "editor_loading",
+      "value": "打开工程中…"
+    },
+    {
+      "name": "app_name",
+      "value": "像素画工作室"
+    },
+    {
+      "name": "project_record_meta",
+      "value": "%1$d×%2$d · %3$d帧 · %4$d层 · %5$s"
+    },
+    {
+      "name": "project_copy",
+      "value": "复制"
+    },
+    {
+      "name": "project_copy_failed",
+      "value": "复制失败"
+    },
+    {
+      "name": "project_copy_suffix",
+      "value": "副本"
+    },
+    {
+      "name": "about_title",
+      "value": "关于"
+    },
+    {
+      "name": "about_buyout",
+      "value": "一次买断，无广告无订阅。购买凭证 = 华为账号，卸载重装后可免费恢复，无需重复付费。"
+    },
+    {
+      "name": "canvas_a11y",
+      "value": "%1$d×%2$d 像素画布，当前工具 %3$s，缩放 %4$d×"
+    },
+    {
+      "name": "export_estimated_size",
+      "value": "预估大小约 %1$s"
+    },
+    {
+      "name": "export_bead_preview",
+      "value": "豆色量化预览"
     }
   ]
 }

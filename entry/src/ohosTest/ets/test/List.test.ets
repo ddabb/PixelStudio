@@ -9,9 +9,13 @@
 import abilityTest from './Ability.test';
 import pixelCoreTest from './PixelCore.test';
 import pixelDocTest from './PixelDoc.test';
+import pixelExportTest from './PixelExport.test';
+import projectStoreTest from './ProjectStore.test';
 
 export default function testsuite() {
   abilityTest();
   pixelCoreTest();
   pixelDocTest();
+  pixelExportTest();
+  projectStoreTest();
 }
