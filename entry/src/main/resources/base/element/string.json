@@ -93,6 +93,10 @@
       "value": "笔宽"
     },
     {
+      "name": "brush_size_px",
+      "value": "笔宽 %d"
+    },
+    {
       "name": "mirror_x",
       "value": "镜像X"
     },

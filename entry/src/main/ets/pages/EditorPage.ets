@@ -336,21 +336,42 @@ struct EditorPage {
       })
   }
 
+  /** 无障碍：笔宽档位描述（"笔宽 %d" 占位符资源，档位以像素计）。 */
+  private brushA11y(size: number): string {
+    const ctx = this.getUIContext().getHostContext();
+    if (ctx === undefined) {
+      return size.toString();
+    }
+    try {
+      return ctx.resourceManager.getStringByNameSync('brush_size_px')
+        .replace('%d', size.toString());
+    } catch (e) {
+      return size.toString();
+    }
+  }
+
   @Builder
   sizeButton(size: number) {
-    Button(size.toString())
-      .type(ButtonType.Normal)
-      .borderRadius(10)
-      .width(36)
-      .height(36)
-      .fontSize(14)
-      .backgroundColor(this.session.brushSize === size
-        ? $r('app.color.brand') : $r('app.color.card_background'))
-      .fontColor(this.session.brushSize === size
-        ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
-      .onClick(() => {
-        this.session.brushSize = size;
-      })
+    // 圆点直径与笔宽像素等比（6vp×档位，1:2:3），替代数字文本：
+    // 36vp 按钮内数字默认内边距挤压易截断，且裸数字语义弱，圆点粗细一目了然。
+    Button() {
+      Circle()
+        .width(size * 6)
+        .height(size * 6)
+        .fill(this.session.brushSize === size
+          ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
+    }
+    .type(ButtonType.Normal)
+    .borderRadius(10)
+    .width(36)
+    .height(36)
+    .padding(0)
+    .backgroundColor(this.session.brushSize === size
+      ? $r('app.color.brand') : $r('app.color.card_background'))
+    .accessibilityText(this.brushA11y(size))
+    .onClick(() => {
+      this.session.brushSize = size;
+    })
   }
 
   /** 底部 Tab：mode 0=画布 1=图层 2=帧 3=导出；激活态在体内读取 panelMode。 */

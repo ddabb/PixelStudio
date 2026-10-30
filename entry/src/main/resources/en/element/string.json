@@ -93,6 +93,10 @@
       "value": "Brush"
     },
     {
+      "name": "brush_size_px",
+      "value": "Brush size %d"
+    },
+    {
       "name": "mirror_x",
       "value": "Mirror X"
     },
