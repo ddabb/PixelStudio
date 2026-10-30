@@ -535,6 +535,22 @@
     {
       "name": "export_bead_preview",
       "value": "豆色量化预览"
+    },
+    {
+      "name": "demo_restore",
+      "value": "示例工程"
+    },
+    {
+      "name": "demo_restored_toast",
+      "value": "已恢复 %1$d 个示例工程"
+    },
+    {
+      "name": "demo_present_toast",
+      "value": "示例工程已就绪"
+    },
+    {
+      "name": "demo_restore_failed",
+      "value": "恢复示例工程失败"
     }
   ]
 }

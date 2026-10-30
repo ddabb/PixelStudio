@@ -535,6 +535,22 @@
     {
       "name": "export_bead_preview",
       "value": "Bead color preview"
+    },
+    {
+      "name": "demo_restore",
+      "value": "Demos"
+    },
+    {
+      "name": "demo_restored_toast",
+      "value": "Restored %1$d demo project(s)"
+    },
+    {
+      "name": "demo_present_toast",
+      "value": "Demo projects are ready"
+    },
+    {
+      "name": "demo_restore_failed",
+      "value": "Failed to restore demo projects"
     }
   ]
 }

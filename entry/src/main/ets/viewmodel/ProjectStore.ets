@@ -19,6 +19,8 @@ import { PxsFile, PxsDoc, PxsMeta, PxsLayerMeta } from '../core/PxsFile';
 const PXS_RAW_MAX = 1 << 26;
 /** 缩略图边长上限（像素）；首帧合成后最近邻降采样。 */
 export const THUMB_MAX = 64;
+/** 随包示例工程 id（rawfile 内 {id}.pxs / {id}.thumb 边车；星夜小猫 / 落日海岸 / 果冻史莱姆）。 */
+export const DEMO_IDS: string[] = ['demo_cat', 'demo_sunset', 'demo_slime'];
 
 /** 工程列表条目（列表页展示；corrupt = 解压/解析失败的灰显项）。 */
 export class ProjectRecord {
@@ -33,6 +35,12 @@ export class ProjectRecord {
   corrupt: boolean = false;
   /** 缩略图原始字节（[w LE16][h LE16][RGBA]，边长 ≤ THUMB_MAX）；无 = undefined。 */
   thumb: Uint8Array | undefined = undefined;
+}
+
+/** 示例工程恢复结果（restored = 本次新落盘数；failed = 缺失但恢复失败数）。 */
+export class DemoRestoreResult {
+  restored: number = 0;
+  failed: number = 0;
 }
 
 export class ProjectStore {
@@ -51,6 +59,12 @@ export class ProjectStore {
   /** 工程名清洗：去分隔符/井号/换行（防 .pxs 元数据被破坏），限 64 字符。 */
   static sanitizeName(name: string): string {
     return name.replace('|', '/').replace('#', '').replace('\n', ' ').trim().substring(0, 64);
+  }
+
+  /** 示例工程确定性排序秩（DEMO_IDS 序，星夜小猫最前）；非示例 = DEMO_IDS.length（mtime 并列时靠后）。 */
+  static demoRank(id: string): number {
+    const rank = DEMO_IDS.indexOf(id);
+    return rank < 0 ? DEMO_IDS.length : rank;
   }
 
   // ---------- 路径 ----------
@@ -192,19 +206,24 @@ export class ProjectStore {
     ProjectStore.writeFileBytes(this.thumbPathFor(id), bytes);
   }
 
+  /** 缩略图字节合法性（[w LE16][h LE16][RGBA]，边长 1..THUMB_MAX，长度精确匹配）。 */
+  static checkThumbBytes(bytes: Uint8Array): boolean {
+    if (bytes.length < 4) {
+      return false;
+    }
+    const tw: number = bytes[0] | (bytes[1] << 8);
+    const th: number = bytes[2] | (bytes[3] << 8);
+    return tw >= 1 && th >= 1 && tw <= THUMB_MAX && th <= THUMB_MAX
+      && bytes.length === 4 + tw * th * 4;
+  }
+
   /** 读缩略图边车；缺失/损坏返回 undefined。 */
   readThumb(id: string): Uint8Array | undefined {
     if (id.length === 0) {
       return undefined;
     }
     const bytes = ProjectStore.readFileBytes(this.thumbPathFor(id));
-    if (bytes === undefined || bytes.length < 4) {
-      return undefined;
-    }
-    const tw: number = bytes[0] | (bytes[1] << 8);
-    const th: number = bytes[2] | (bytes[3] << 8);
-    if (tw < 1 || th < 1 || tw > THUMB_MAX || th > THUMB_MAX
-      || bytes.length !== 4 + tw * th * 4) {
+    if (bytes === undefined || !ProjectStore.checkThumbBytes(bytes)) {
       return undefined;
     }
     return bytes;
@@ -224,18 +243,32 @@ export class ProjectStore {
       return undefined;
     }
     const fileBytes = ProjectStore.readFileBytes(path);
-    if (fileBytes === undefined || fileBytes.length < 9) {
+    if (fileBytes === undefined) {
+      return undefined;
+    }
+    return ProjectStore.unwrapBytes(fileBytes);
+  }
+
+  /** 包装字节（[8B 未压缩长度 LE][zlib 流]）→ 未压缩体；任何环节失败返回 undefined。 */  private static async unwrapBytes(wrapped: Uint8Array): Promise<Uint8Array | undefined> {
+    if (wrapped.length < 9) {
       return undefined;
     }
     let rawLen = 0;
     for (let i = 7; i >= 0; i--) {
-      rawLen = rawLen * 256 + fileBytes[i];
+      rawLen = rawLen * 256 + wrapped[i];
     }
     if (rawLen <= 0 || rawLen > PXS_RAW_MAX) {
       return undefined;
     }
+    // zlib 接口要求整化缓冲（view 偏移/超长时先拷贝）。
+    let src = wrapped;
+    if (src.byteOffset !== 0 || src.buffer.byteLength !== src.length) {
+      const exact = new Uint8Array(src.length);
+      exact.set(src);
+      src = exact;
+    }
     const dest = new ArrayBuffer(rawLen);
-    const source = fileBytes.buffer.slice(8);
+    const source = src.buffer.slice(8);
     try {
       const zip = zlib.createZipSync();
       const info = await zip.uncompress(dest, source);
@@ -250,7 +283,7 @@ export class ProjectStore {
 
   // ---------- 对外 API ----------
 
-  /** 工程列表（updatedAt 降序；损坏文件以 corrupt 条目出现，不吞不崩）。 */
+  /** 工程列表（updatedAt 降序；并列时示例工程按 DEMO_IDS 序在前；损坏文件以 corrupt 条目出现，不吞不崩）。 */
   async list(): Promise<ProjectRecord[]> {
     if (!this.ensureDir()) {
       return [];
@@ -299,7 +332,8 @@ export class ProjectStore {
       rec.thumb = this.readThumb(id);
       out.push(rec);
     }
-    out.sort((a: ProjectRecord, b: ProjectRecord): number => b.updatedAt - a.updatedAt);
+    out.sort((a: ProjectRecord, b: ProjectRecord): number =>
+      (b.updatedAt - a.updatedAt) || (ProjectStore.demoRank(a.id) - ProjectStore.demoRank(b.id)));
     return out;
   }
 
@@ -423,6 +457,93 @@ export class ProjectStore {
       }
     } catch (e) {
     }
+    return true;
+  }
+
+  // ---------- 示例工程（rawfile 随包演示；商店素材与新用户引导共用） ----------
+
+  /**
+   * 恢复缺失的示例工程（幂等：已存在跳过不覆盖用户数据）。
+   * 校验：.pxs 解包 + 完整解析通过才落盘（防打包异常文件污染列表通道）；
+   * .thumb 边车合法才随存（缺失/损坏不阻断主档）。
+   * 排序：按优先级反序写入（星夜小猫末位落盘 = mtime 最新）；mtime 并列（同秒/时钟粒度粗）
+   * 时由 list() 以示例秩决胜——两种时间精度下展示顺序一致（星夜小猫置顶）。
+   */
+  async restoreDemos(): Promise<DemoRestoreResult> {
+    const out = new DemoRestoreResult();
+    if (this.context === undefined || !this.ensureDir()) {
+      out.failed = DEMO_IDS.length;
+      return out;
+    }
+    const missing: string[] = [];
+    for (const id of DEMO_IDS) {
+      try {
+        if (!fs.accessSync(this.pathFor(id))) {
+          missing.push(id);
+        }
+      } catch (e) {
+        missing.push(id);
+      }
+    }
+    for (let i = missing.length - 1; i >= 0; i--) {
+      if (await this.restoreOneDemo(missing[i])) {
+        out.restored++;
+      } else {
+        out.failed++;
+      }
+    }
+    return out;
+  }
+
+  /** 单个示例工程 rawfile → 沙箱（写原包装字节，免二次压缩）。 */
+  private async restoreOneDemo(id: string): Promise<boolean> {
+    const ctx = this.context;
+    if (ctx === undefined) {
+      return false;
+    }
+    let wrapped: Uint8Array;
+    try {
+      wrapped = await ctx.resourceManager.getRawFileContent(`${id}.pxs`);
+    } catch (e) {
+      return false;
+    }
+    const raw = await ProjectStore.unwrapBytes(wrapped);
+    if (raw === undefined) {
+      return false;
+    }
+    // 完整解析校验（元数据 + 像素流长度）。
+    const pxs = PxsFile.parse(raw);
+    if (pxs === undefined) {
+      return false;
+    }
+    if (!ProjectStore.writeFileBytes(this.pathFor(id), wrapped)) {
+      return false;
+    }
+    // 缩略图边车尽力而为。
+    try {
+      const thumb = await ctx.resourceManager.getRawFileContent(`${id}.thumb`);
+      if (ProjectStore.checkThumbBytes(thumb)) {
+        ProjectStore.writeFileBytes(this.thumbPathFor(id), thumb);
+      }
+    } catch (e) {
+    }
+    return true;
+  }
+
+  /** 首次启动播种：工程目录不存在时恢复全部示例工程；返回是否执行了播种。 */
+  async seedDemosIfFresh(): Promise<boolean> {
+    const dir = this.dir();
+    if (dir.length === 0) {
+      return false;
+    }
+    try {
+      if (fs.accessSync(dir)) {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+    await this.restoreDemos();
     return true;
   }
 

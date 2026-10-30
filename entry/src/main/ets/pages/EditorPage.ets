@@ -34,7 +34,7 @@ const WIDE_MIN_VP = 840;
 @Entry
 @ComponentV2
 struct EditorPage {
-  doc: PixelDoc = new PixelDoc(64, 64);
+  @Local doc: PixelDoc = new PixelDoc(64, 64);
   @Local session: EditorSession = new EditorSession();
   /** 底部面板模式：0=画布 1=图层 2=帧 3=导出（平板双栏时收敛为 0/3）。 */
   @Local panelMode: number = 0;

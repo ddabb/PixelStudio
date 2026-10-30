@@ -41,11 +41,17 @@ struct ProjectListPage {
     if (ctx !== undefined) {
       this.store.init(ctx);
     }
+  }
+
+  /** 每次页面显示都重查列表：编辑器 router.back() 返回时 aboutToAppear 不会重跑。 */
+  onPageShow(): void {
     this.refresh();
   }
 
   private async refresh(): Promise<void> {
     this.loading = true;
+    // 首次启动播种示例工程（工程目录已存在时零成本跳过）。
+    await this.store.seedDemosIfFresh();
     const recs = await this.store.list();
     const out: UIProject[] = [];
     for (const rec of recs) {
@@ -155,6 +161,19 @@ struct ProjectListPage {
     const newId = await this.store.duplicate(id, suffix);
     if (newId === undefined) {
       this.toast($r('app.string.project_copy_failed'));
+    }
+    this.refresh();
+  }
+
+  /** 恢复示例工程：缺失的从随包 rawfile 落盘，已存在跳过；结果三态播报。 */
+  private async restoreDemos(): Promise<void> {
+    const r = await this.store.restoreDemos();
+    if (r.failed > 0) {
+      this.toast($r('app.string.demo_restore_failed'));
+    } else if (r.restored > 0) {
+      this.toast($r('app.string.demo_restored_toast', r.restored));
+    } else {
+      this.toast($r('app.string.demo_present_toast'));
     }
     this.refresh();
   }
@@ -510,6 +529,17 @@ struct ProjectListPage {
             .fontSize(11)
             .fontColor($r('app.color.hint_text'))
           Blank()
+          Button($r('app.string.demo_restore'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(30)
+            .padding({ left: 14, right: 14 })
+            .fontSize(12)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor($r('app.color.secondary_text'))
+            .onClick(() => {
+              this.restoreDemos();
+            })
           Button($r('app.string.about_title'))
             .type(ButtonType.Normal)
             .borderRadius(10)

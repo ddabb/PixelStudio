@@ -11,7 +11,7 @@ import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
 import { abilityDelegatorRegistry } from '@kit.TestKit';
 import { common } from '@kit.AbilityKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
-import { ProjectStore, ProjectRecord } from '../../../main/ets/viewmodel/ProjectStore';
+import { ProjectStore, ProjectRecord, DEMO_IDS } from '../../../main/ets/viewmodel/ProjectStore';
 import { PixelDoc } from '../../../main/ets/core/PixelDoc';
 import { PxsDoc } from '../../../main/ets/core/PxsFile';
 
@@ -371,6 +371,150 @@ export default function projectStoreTest() {
       expect(store.remove('test_rm1')).assertTrue();
       expect(fs.accessSync(`${dir}/test_rm1.pxs`)).assertFalse();
       expect(fs.accessSync(`${dir}/test_rm1.thumb`)).assertFalse();
+    })
+
+    // ---------- 示例工程（rawfile 随包演示 → 沙箱；末位执行，demo_ 文件随测随清） ----------
+
+    const cleanupDemos = (): void => {
+      const dir = `${context.filesDir}/pixel/projects`;
+      try {
+        if (!fs.accessSync(dir)) {
+          return;
+        }
+        for (const name of fs.listFileSync(dir)) {
+          if (name.startsWith('demo_')) {
+            try {
+              fs.unlinkSync(`${dir}/${name}`);
+            } catch (e) {
+            }
+          }
+        }
+      } catch (e) {
+      }
+    }
+
+    it('demoRestoreAndIdempotent', 0, async () => {
+      cleanupDemos();
+      // 首次恢复：全部落盘（应用上下文聚合 entry HAP 资源，rawfile 可达）。
+      const r1 = await store.restoreDemos();
+      expect(r1.failed).assertEqual(0);
+      expect(r1.restored).assertEqual(DEMO_IDS.length);
+      // 落盘工程可完整解析（协议与元数据逐项校验，以 demo_cat 为代表）。
+      const cat: PxsDoc | undefined = await store.loadDoc('demo_cat');
+      expect(cat !== undefined).assertTrue();
+      if (cat !== undefined) {
+        expect(cat.meta.name).assertEqual('星夜小猫');
+        expect(cat.meta.w).assertEqual(32);
+        expect(cat.meta.h).assertEqual(32);
+        expect(cat.meta.fps).assertEqual(8);
+        expect(cat.meta.frameCount).assertEqual(3);
+        expect(cat.meta.layers.length).assertEqual(2);
+        expect(cat.meta.layers[1].name).assertEqual('小猫');
+        expect(cat.meta.paletteId).assertEqual('pico8');
+        expect(cat.cells.length).assertEqual(3);
+        expect(cat.cells[0].length).assertEqual(2);
+        expect(cat.cells[0][0].data.length).assertEqual(32 * 32 * 4);
+      }
+      // 缩略图边车随存且尺寸合法。
+      const th = store.readThumb('demo_cat');
+      expect(th !== undefined).assertTrue();
+      if (th !== undefined) {
+        const tw = th[0] | (th[1] << 8);
+        expect(tw).assertEqual(32);
+      }
+      // 幂等：全部已存在 → 再恢复既不重复也不报错。
+      const r2 = await store.restoreDemos();
+      expect(r2.restored).assertEqual(0);
+      expect(r2.failed).assertEqual(0);
+      // 列表可见全部示例（无损坏、带缩略图）。
+      const recs = await store.list();
+      let demoCount = 0;
+      for (const rec of recs) {
+        if (DEMO_IDS.indexOf(rec.id) >= 0) {
+          demoCount++;
+          expect(rec.corrupt).assertFalse();
+          expect(rec.thumb !== undefined).assertTrue();
+        }
+      }
+      expect(demoCount).assertEqual(DEMO_IDS.length);
+      cleanupDemos();
+    })
+
+    it('demoListOrderCanonical', 0, async () => {
+      cleanupDemos();
+      // 恢复全部 → 列表内示例顺序恒为 DEMO_IDS 序（mtime 并列走示例秩决胜，
+      // 亚秒精度走反序写入的 mtime 序），两种时间精度下断言一致。
+      const r = await store.restoreDemos();
+      expect(r.failed).assertEqual(0);
+      expect(r.restored).assertEqual(DEMO_IDS.length);
+      const recs = await store.list();
+      const ids: string[] = [];
+      for (const rec of recs) {
+        if (DEMO_IDS.indexOf(rec.id) >= 0) {
+          ids.push(rec.id);
+        }
+      }
+      expect(ids.length).assertEqual(DEMO_IDS.length);
+      for (let i = 0; i < ids.length; i++) {
+        expect(ids[i]).assertEqual(DEMO_IDS[i]);
+      }
+      cleanupDemos();
+    })
+
+    it('demoRestoreSkipsExisting', 0, async () => {
+      cleanupDemos();
+      // 预置用户自建的同 id 工程：恢复入口只补缺，不得覆盖。
+      const doc = new PixelDoc(4, 4);
+      const meta = ProjectStore.buildMeta(doc, '用户自建', 8, 'pico8');
+      const ok = await store.saveDoc('demo_cat', meta, doc.cells);
+      expect(ok).assertTrue();
+      const r = await store.restoreDemos();
+      expect(r.failed).assertEqual(0);
+      const pxs: PxsDoc | undefined = await store.loadDoc('demo_cat');
+      expect(pxs !== undefined).assertTrue();
+      if (pxs !== undefined) {
+        expect(pxs.meta.name).assertEqual('用户自建');
+        expect(pxs.meta.w).assertEqual(4);
+      }
+      cleanupDemos();
+    })
+
+    it('demoSeedSkipsWhenDirExists', 0, async () => {
+      // 目录已被套件前序用例创建 → 非首次启动，播种入口不动作。
+      const dir = `${context.filesDir}/pixel/projects`;
+      try {
+        if (!fs.accessSync(dir)) {
+          fs.mkdirSync(dir, true);
+        }
+      } catch (e) {
+      }
+      const seeded = await store.seedDemosIfFresh();
+      expect(seeded).assertFalse();
+    })
+
+    it('demoSeedWhenFreshRestoresAll', 0, async () => {
+      // 末位执行：清空并移除工程目录，模拟出厂首启 → 播种全部示例。
+      const dir = `${context.filesDir}/pixel/projects`;
+      try {
+        if (fs.accessSync(dir)) {
+          for (const name of fs.listFileSync(dir)) {
+            try {
+              fs.unlinkSync(`${dir}/${name}`);
+            } catch (e) {
+            }
+          }
+          fs.rmdirSync(dir);
+        }
+      } catch (e) {
+      }
+      const seeded = await store.seedDemosIfFresh();
+      expect(seeded).assertTrue();
+      const recs = await store.list();
+      expect(recs.length).assertEqual(DEMO_IDS.length);
+      for (const rec of recs) {
+        expect(rec.corrupt).assertFalse();
+        expect(DEMO_IDS.indexOf(rec.id) >= 0).assertTrue();
+      }
     })
   })
 }

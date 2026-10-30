@@ -578,13 +578,21 @@ export struct CanvasView {
     this.areaW = w;
     this.areaH = h;
     if (!this.fitted) {
-      this.fitted = true;
       const z = Math.floor(Math.min(w / this.doc.w, h / this.doc.h));
+      if (z < MIN_ZOOM) {
+        // 页面过渡首帧可能是退化面积：不锁定 fit，等最终布局再适配。
+        hilog.info(DOMAIN, TAG, 'fit defer z=%{public}s area=%{public}s x %{public}s doc=%{public}s x %{public}s',
+          z.toString(), Math.round(w).toString(), Math.round(h).toString(),
+          this.doc.w.toString(), this.doc.h.toString());
+        return;
+      }
+      this.fitted = true;
       this.session.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
       this.session.panX = 0;
       this.session.panY = 0;
-      hilog.info(DOMAIN, TAG, 'fit zoom=%{public}f area=(%{public}d,%{public}d)',
-        this.session.zoom, Math.round(w), Math.round(h));
+      hilog.info(DOMAIN, TAG, 'fit zoom=%{public}s area=%{public}s x %{public}s doc=%{public}s x %{public}s',
+        this.session.zoom.toString(), Math.round(w).toString(), Math.round(h).toString(),
+        this.doc.w.toString(), this.doc.h.toString());
     }
   }
 
