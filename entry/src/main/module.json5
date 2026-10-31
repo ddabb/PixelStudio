@@ -35,6 +35,10 @@
         ]
       }
     ],
-    "requestPermissions": []
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.VIBRATE"
+      }
+    ]
   }
 }

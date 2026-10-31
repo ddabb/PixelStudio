@@ -5,6 +5,8 @@
  * 手势协议（§5.2）：单指 = 工具笔触；第二指落下未成笔（位移≤8vp）→ 回滚转双指
  * 手势（捏合缩放/平移）；已成笔 → 忽略防误触；instant 工具（填充/吸管）不回滚。
  * 坐标空间：外层画布区组件相对 vp；origin = (area − doc·zoom)/2 + pan。
+ * 1.1.0：悬停像素光标（BrushCursorOverlay，鼠标/2in1）+ 触感反馈（Haptics）+
+ * 洋葱皮吸色改读 blend 前 pickBuf 副本（修复幽灵色污染）。
  */
 
 import { image } from '@kit.ImageKit';
@@ -17,8 +19,10 @@ import { FloodFill } from '../core/FloodFill';
 import { UndoStack } from '../core/UndoStack';
 import { GestureTracker, GestureSink } from '../core/GestureTracker';
 import { EditorSession, Tool, GridMode, SelRect } from '../viewmodel/EditorSession';
+import { Haptics } from '../viewmodel/Haptics';
 import { GridOverlay } from './GridOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
+import { BrushCursorOverlay } from './BrushCursorOverlay';
 
 const DOMAIN = 0x0001;
 const TAG = 'CanvasView';
@@ -38,10 +42,15 @@ export struct CanvasView {
 
   @Local pixelMap: image.PixelMap | undefined = undefined;
   @Local checkerMap: image.PixelMap | undefined = undefined;
+  /** 悬停像素光标（鼠标/2in1）：锚点像素坐标，-1 = 隐藏。 */
+  @Local hoverPx: number = -1;
+  @Local hoverPy: number = -1;
 
   private composeBuf: Uint8Array = new Uint8Array(0);
   /** 洋葱皮缓冲：上一帧合成结果（编辑预览专用，播放时跳过）。 */
   private onionBuf: Uint8Array = new Uint8Array(0);
+  /** 吸色专用副本：洋葱 blend 前的当前帧合成（readComposed 只读此，防幽灵色污染）。 */
+  private pickBuf: Uint8Array = new Uint8Array(0);
   private tracker: GestureTracker | undefined = undefined;
   private areaW: number = 0;
   private areaH: number = 0;
@@ -71,6 +80,7 @@ export struct CanvasView {
   aboutToAppear(): void {
     this.composeBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
     this.onionBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
+    this.pickBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
     this.tracker = new GestureTracker(new CanvasSink(this));
     this.buildChecker();
     this.render();
@@ -105,6 +115,8 @@ export struct CanvasView {
     const t0 = Date.now();
     this.lastRenderAt = t0;
     Compose.composeFrame(this.doc, this.doc.activeFrame, this.composeBuf);
+    // 吸色快照：洋葱 blend 前留副本，readComposed 不读到 30% 幽灵色。
+    this.pickBuf.set(this.composeBuf);
     // 洋葱皮：编辑预览时将上一帧以 30% 幽灵叠加在当前帧之上（播放中不叠加，§4.1）。
     if (this.session.onionSkin && !this.session.playing
       && this.doc.activeFrame > 0 && this.onionBuf.length === this.composeBuf.length) {
@@ -211,13 +223,13 @@ export struct CanvasView {
     }
   }
 
-  /** 合成缓冲取色（RGBA 字节序 → packed ARGB）。 */
+  /** 吸色缓冲取色（RGBA 字节序 → packed ARGB）；读洋葱 blend 前的 pickBuf。 */
   private readComposed(px: number, py: number): number {
     const i = (py * this.doc.w + px) * 4;
-    const r = this.composeBuf[i];
-    const g = this.composeBuf[i + 1];
-    const b = this.composeBuf[i + 2];
-    const a = this.composeBuf[i + 3];
+    const r = this.pickBuf[i];
+    const g = this.pickBuf[i + 1];
+    const b = this.pickBuf[i + 2];
+    const a = this.pickBuf[i + 3];
     return ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
   }
 
@@ -228,6 +240,7 @@ export struct CanvasView {
       if (this.session.currentTool === Tool.Eraser) {
         this.session.currentTool = Tool.Pencil;
       }
+      Haptics.confirm();
       hilog.info(DOMAIN, TAG, 'eyedrop picked 0x%{public}s', sample.toString(16));
     }
   }
@@ -343,6 +356,7 @@ export struct CanvasView {
         if (!this.strokeVoid) {
           Raster.stamp(cell, px, py, this.session.brushSize, this.strokeArgb(), this.session.mirrorX);
           this.strokeChanged = true;
+          Haptics.tick();
           this.armLongPress();
           this.render();
         }
@@ -350,6 +364,7 @@ export struct CanvasView {
       case Tool.Fill:
         if (!this.strokeVoid && FloodFill.fill(cell, px, py, this.session.color)) {
           this.strokeChanged = true;
+          Haptics.tick();
           this.render();
         }
         break;
@@ -569,6 +584,35 @@ export struct CanvasView {
     return this.session.zoom >= 8;
   }
 
+  // ---------- 悬停像素光标（1.1.0，鼠标/2in1） ----------
+
+  /** 绘制/点取类工具显示光标（选区/文本除外）；播放中不显示。 */
+  private cursorVisible(): boolean {
+    const t = this.session.currentTool;
+    return !this.session.playing
+      && (t === Tool.Pencil || t === Tool.Eraser || t === Tool.Fill
+        || t === Tool.Line || t === Tool.Rect || t === Tool.Ellipse || t === Tool.Eyedropper);
+  }
+
+  /** 覆盖块尺寸：绘制类 = 笔宽；填充/吸管 = 单像素。 */
+  private cursorSize(): number {
+    const t = this.session.currentTool;
+    return (t === Tool.Fill || t === Tool.Eyedropper) ? 1 : this.session.brushSize;
+  }
+
+  private updateHover(hovering: boolean, vx: number, vy: number): void {
+    if (!hovering) {
+      this.hoverPx = -1;
+      this.hoverPy = -1;
+      return;
+    }
+    const px = this.vToPxX(vx);
+    const py = this.vToPxY(vy);
+    // 悬停出画布像素域 → 隐藏（backdrop 区不显示光标）。
+    this.hoverPx = (px >= 0 && px < this.doc.w) ? px : -1;
+    this.hoverPy = (py >= 0 && py < this.doc.h) ? py : -1;
+  }
+
   private onCanvasArea(newArea: Area): void {
     const w = Number(newArea.width);
     const h = Number(newArea.height);
@@ -656,6 +700,17 @@ export struct CanvasView {
             docH: this.doc.h
           })
         }
+        if (this.cursorVisible()) {
+          BrushCursorOverlay({
+            hoverPx: this.hoverPx,
+            hoverPy: this.hoverPy,
+            brushSize: this.cursorSize(),
+            zoom: this.session.zoom,
+            docW: this.doc.w,
+            docH: this.doc.h,
+            mirrorX: this.session.mirrorX
+          })
+        }
       }
       .width(this.doc.w * this.session.zoom)
       .height(this.doc.h * this.session.zoom)
@@ -667,6 +722,10 @@ export struct CanvasView {
     .accessibilityText(this.a11yText())
     .onTouch((event: TouchEvent) => {
       this.handleTouch(event);
+    })
+    .onHover((hovering: boolean, event: HoverEvent) => {
+      // HoverEvent 坐标可能缺省：回退 -1 → 换算出界即隐藏光标。
+      this.updateHover(hovering, event.x ?? -1, event.y ?? -1);
     })
     .onAreaChange((_old: Area, newArea: Area) => {
       this.onCanvasArea(newArea);

@@ -10,6 +10,7 @@ import { PixelDoc } from '../core/PixelDoc';
 import { Compose } from '../core/Compose';
 import { EditorSession } from '../viewmodel/EditorSession';
 import { DocOps } from '../viewmodel/DocOps';
+import { Haptics } from '../viewmodel/Haptics';
 
 @ComponentV2
 export struct FrameStrip {
@@ -75,6 +76,7 @@ export struct FrameStrip {
         ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
       .onClick(() => {
         this.togglePlay();
+        Haptics.tick();
       })
   }
 
@@ -102,9 +104,11 @@ export struct FrameStrip {
           ? $r('app.color.brand') : $r('app.color.border_color')
       })
       .borderRadius(6)
+      .animation({ duration: 150 })
     }
     .onClick(() => {
       DocOps.setActiveFrame(this.doc, this.session, index);
+      Haptics.tick();
     })
   }
 
@@ -170,6 +174,7 @@ export struct FrameStrip {
           .onChange((isOn: boolean) => {
             this.session.onionSkin = isOn;
             this.session.tick++;
+            Haptics.tick();
           })
         Blank()
       }

@@ -17,6 +17,7 @@ import { DocOps } from '../viewmodel/DocOps';
 import { PaletteStore } from '../viewmodel/PaletteStore';
 import { ProjectStore } from '../viewmodel/ProjectStore';
 import { EditorLaunch } from '../viewmodel/EditorLaunch';
+import { Haptics } from '../viewmodel/Haptics';
 import { CanvasView } from '../components/CanvasView';
 import { LayerPanel } from '../components/LayerPanel';
 import { FrameStrip } from '../components/FrameStrip';
@@ -231,6 +232,23 @@ struct EditorPage {
       g === GridMode.Auto ? GridMode.On : (g === GridMode.On ? GridMode.Off : GridMode.Auto);
   }
 
+  // ---------- 调色板面板出入场（1.1.0 微动画：220ms easeOut + OPACITY/translate） ----------
+
+  private openPalette(): void {
+    if (this.session.playing) {
+      this.session.playing = false;
+    }
+    this.getUIContext().animateTo({ duration: 220, curve: Curve.EaseOut }, (): void => {
+      this.paletteOpen = true;
+    });
+  }
+
+  private closePalette(): void {
+    this.getUIContext().animateTo({ duration: 220, curve: Curve.EaseOut }, (): void => {
+      this.paletteOpen = false;
+    });
+  }
+
   private gridLabel(): ResourceStr {
     if (this.session.gridMode === GridMode.On) {
       return $r('app.string.grid_on');
@@ -259,6 +277,7 @@ struct EditorPage {
           DocOps.cancelSelection(this.session);
         }
         this.session.currentTool = tool;
+        Haptics.tick();
       })
   }
 
@@ -282,6 +301,7 @@ struct EditorPage {
         } else {
           this.session.redo();
         }
+        Haptics.tick();
       })
   }
 
@@ -299,6 +319,7 @@ struct EditorPage {
         ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
       .onClick(() => {
         this.session.mirrorX = !this.session.mirrorX;
+        Haptics.tick();
       })
   }
 
@@ -316,6 +337,7 @@ struct EditorPage {
         ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
       .onClick(() => {
         this.session.shapeFilled = !this.session.shapeFilled;
+        Haptics.tick();
       })
   }
 
@@ -333,6 +355,7 @@ struct EditorPage {
         ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
       .onClick(() => {
         this.cycleGrid();
+        Haptics.tick();
       })
   }
 
@@ -371,6 +394,7 @@ struct EditorPage {
     .accessibilityText(this.brushA11y(size))
     .onClick(() => {
       this.session.brushSize = size;
+      Haptics.tick();
     })
   }
 
@@ -468,10 +492,7 @@ struct EditorPage {
         session: this.session,
         store: this.paletteStore,
         onOpenPanel: (): void => {
-          if (this.session.playing) {
-            this.session.playing = false;
-          }
-          this.paletteOpen = true;
+          this.openPalette();
         }
       })
     }
@@ -526,7 +547,7 @@ struct EditorPage {
             session: this.session,
             store: this.paletteStore,
             onClose: (): void => {
-              this.paletteOpen = false;
+              this.closePalette();
             }
           })
         }
@@ -563,7 +584,7 @@ struct EditorPage {
               session: this.session,
               store: this.paletteStore,
               onClose: (): void => {
-                this.paletteOpen = false;
+                this.closePalette();
               }
             })
           }
