@@ -555,6 +555,34 @@
     {
       "name": "demo_restore_failed",
       "value": "恢复示例工程失败"
+    },
+    {
+      "name": "backup_title",
+      "value": "备份与恢复"
+    },
+    {
+      "name": "backup_action",
+      "value": "备份工程"
+    },
+    {
+      "name": "backup_restore",
+      "value": "从备份恢复"
+    },
+    {
+      "name": "backup_done",
+      "value": "备份完成（%d 个文件）"
+    },
+    {
+      "name": "backup_imported",
+      "value": "已导入 %d 个 · 跳过 %d 个（已存在）"
+    },
+    {
+      "name": "backup_none",
+      "value": "没有可备份的内容"
+    },
+    {
+      "name": "backup_open_fail",
+      "value": "文件打开/保存失败，请重试"
     }
   ]
 }

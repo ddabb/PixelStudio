@@ -8,6 +8,7 @@
 import { image } from '@kit.ImageKit';
 import { EditorLaunch } from '../viewmodel/EditorLaunch';
 import { ProjectStore, ProjectRecord, THUMB_MAX } from '../viewmodel/ProjectStore';
+import { BackupDialog } from '../components/BackupDialog';
 
 /** 新建尺寸档（开发计划 §4.1：16/24/32/48/64/96/128）。 */
 const NEW_SIZES: number[] = [16, 24, 32, 48, 64, 96, 128];
@@ -34,6 +35,8 @@ struct ProjectListPage {
   @Local deletingId: string = '';
   /** 关于对话框（买断说明）。 */
   @Local aboutOpen: boolean = false;
+  /** 备份/恢复对话框（1.1.0-C）。 */
+  @Local backupOpen: boolean = false;
   private store: ProjectStore = new ProjectStore();
 
   aboutToAppear(): void {
@@ -540,6 +543,17 @@ struct ProjectListPage {
             .onClick(() => {
               this.restoreDemos();
             })
+          Button($r('app.string.backup_action'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(30)
+            .padding({ left: 14, right: 14 })
+            .fontSize(12)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor($r('app.color.secondary_text'))
+            .onClick(() => {
+              this.backupOpen = true;
+            })
           Button($r('app.string.about_title'))
             .type(ButtonType.Normal)
             .borderRadius(10)
@@ -579,6 +593,17 @@ struct ProjectListPage {
           this.aboutOpen = false;
         })
       }
+
+      // 备份/恢复对话框（1.1.0-C；scrim 自含，恢复有新增时刷新列表）
+      BackupDialog({
+        open: this.backupOpen,
+        onClose: (): void => {
+          this.backupOpen = false;
+        },
+        onRestored: (): void => {
+          this.refresh();
+        }
+      })
     }
     .width('100%')
     .height('100%')

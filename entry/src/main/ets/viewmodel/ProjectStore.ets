@@ -14,6 +14,7 @@ import { PixelDoc, PixelLayer } from '../core/PixelDoc';
 import { PixelBuffer } from '../core/PixelBuffer';
 import { Compose } from '../core/Compose';
 import { PxsFile, PxsDoc, PxsMeta, PxsLayerMeta } from '../core/PxsFile';
+import { BackupCodec } from '../core/BackupCodec';
 
 /** 单工程未压缩体上限（防损坏文件超大分配）。 */
 const PXS_RAW_MAX = 1 << 26;
@@ -458,6 +459,44 @@ export class ProjectStore {
     } catch (e) {
     }
     return true;
+  }
+
+  // ---------- 备份/恢复（.pxba 旁路容器，1.1.0-C；恢复 = 不存在才写，非破坏） ----------
+
+  /** 备份：工程目录全部文件名（.pxs + .thumb；.tmp 残料/非常规名由调用方滤除）。 */
+  listProjectFileNames(): string[] {
+    if (!this.ensureDir()) {
+      return [];
+    }
+    try {
+      return fs.listFileSync(this.dir());
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /** 备份：按名读工程目录文件字节；坏名/缺失/IO 失败 → undefined。 */
+  readProjectFileBytes(name: string): Uint8Array | undefined {
+    if (!BackupCodec.validName(name)) {
+      return undefined;
+    }
+    return ProjectStore.readFileBytes(`${this.dir()}/${name}`);
+  }
+
+  /** 恢复：不存在才写（非破坏性；已存在/坏名/失败 → false 不覆盖）。 */
+  writeProjectFileIfAbsent(name: string, bytes: Uint8Array): boolean {
+    if (!BackupCodec.validName(name) || !this.ensureDir()) {
+      return false;
+    }
+    const path = `${this.dir()}/${name}`;
+    try {
+      if (fs.accessSync(path)) {
+        return false;
+      }
+    } catch (e) {
+      // 查询异常按缺失处理；落盘失败兜底 false。
+    }
+    return ProjectStore.writeFileBytes(path, bytes);
   }
 
   // ---------- 示例工程（rawfile 随包演示；商店素材与新用户引导共用） ----------

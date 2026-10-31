@@ -11,6 +11,7 @@ import pixelCoreTest from './PixelCore.test';
 import pixelDocTest from './PixelDoc.test';
 import pixelExportTest from './PixelExport.test';
 import projectStoreTest from './ProjectStore.test';
+import backupTest from './Backup.test';
 
 export default function testsuite() {
   abilityTest();
@@ -18,4 +19,5 @@ export default function testsuite() {
   pixelDocTest();
   pixelExportTest();
   projectStoreTest();
+  backupTest();
 }

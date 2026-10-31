@@ -254,4 +254,63 @@ export class PaletteStore {
       // 落盘失败静默（内存态仍可用；下次结构变更重试）。
     }
   }
+
+  // ---------- 备份/恢复（.pxba 旁路，1.1.0-C；字节透传保真，恢复 = 不存在才写） ----------
+
+  /** 备份：读 palettes.txt 原始字节（UTF-8 文本原样透传，不经字符串往返）；缺失/IO 失败 → undefined。 */
+  static readBackupBytes(context: common.Context): Uint8Array | undefined {
+    const path = `${context.filesDir}/pixel/palettes.txt`;
+    try {
+      if (!fs.accessSync(path)) {
+        return undefined;
+      }
+      const file = fs.openSync(path, fs.OpenMode.READ_ONLY);
+      try {
+        const size = fs.statSync(file.fd).size;
+        if (size <= 0) {
+          return new Uint8Array(0);
+        }
+        const buf = new ArrayBuffer(size);
+        const n = fs.readSync(file.fd, buf, { length: size });
+        if (n !== size) {
+          return undefined;
+        }
+        return new Uint8Array(buf);
+      } finally {
+        fs.closeSync(file);
+      }
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  /** 恢复：palettes.txt 不存在才写；已存在/IO 失败 → false（非破坏性）。 */
+  static writeBackupBytesIfAbsent(context: common.Context, bytes: Uint8Array): boolean {
+    const path = `${context.filesDir}/pixel/palettes.txt`;
+    try {
+      if (fs.accessSync(path)) {
+        return false;
+      }
+      const dir = `${context.filesDir}/pixel`;
+      if (!fs.accessSync(dir)) {
+        fs.mkdirSync(dir, true);
+      }
+      let body = bytes;
+      if (bytes.byteOffset !== 0 || bytes.buffer.byteLength !== bytes.length) {
+        const exact = new Uint8Array(bytes.length);
+        exact.set(bytes);
+        body = exact;
+      }
+      const file = fs.openSync(path,
+        fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+      try {
+        const n = fs.writeSync(file.fd, body.buffer, { length: body.length });
+        return n === body.length;
+      } finally {
+        fs.closeSync(file);
+      }
+    } catch (e) {
+      return false;
+    }
+  }
 }

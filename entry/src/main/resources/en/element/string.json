@@ -555,6 +555,34 @@
     {
       "name": "demo_restore_failed",
       "value": "Failed to restore demo projects"
+    },
+    {
+      "name": "backup_title",
+      "value": "Backup & Restore"
+    },
+    {
+      "name": "backup_action",
+      "value": "Back Up"
+    },
+    {
+      "name": "backup_restore",
+      "value": "Restore from Backup"
+    },
+    {
+      "name": "backup_done",
+      "value": "Backup complete (%d files)"
+    },
+    {
+      "name": "backup_imported",
+      "value": "Imported %d · skipped %d (already exist)"
+    },
+    {
+      "name": "backup_none",
+      "value": "Nothing to back up"
+    },
+    {
+      "name": "backup_open_fail",
+      "value": "Could not open or save the file, please try again"
     }
   ]
 }
