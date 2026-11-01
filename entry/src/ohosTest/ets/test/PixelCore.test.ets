@@ -8,7 +8,7 @@
 import { describe, it, expect } from '@ohos/hypium';
 import { PixelBuffer } from '../../../main/ets/core/PixelBuffer';
 import { PixelDoc } from '../../../main/ets/core/PixelDoc';
-import { Raster } from '../../../main/ets/core/Raster';
+import { Raster, MirrorMode } from '../../../main/ets/core/Raster';
 import { Compose } from '../../../main/ets/core/Compose';
 import { FloodFill } from '../../../main/ets/core/FloodFill';
 import { UndoStack } from '../../../main/ets/core/UndoStack';
@@ -187,14 +187,14 @@ export default function pixelCoreTest() {
     // ---------- Raster ----------
     it('Raster_stamp_size1', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.stamp(buf, 3, 4, 1, RED, false);
+      Raster.stamp(buf, 3, 4, 1, RED, MirrorMode.None);
       expect(countOpaque(buf)).assertEqual(1);
       expect(buf.getPx(3, 4)).assertEqual(RED);
     });
 
     it('Raster_stamp_size2', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.stamp(buf, 2, 2, 2, RED, false);
+      Raster.stamp(buf, 2, 2, 2, RED, MirrorMode.None);
       expect(buf.getPx(2, 2)).assertEqual(RED);
       expect(buf.getPx(3, 2)).assertEqual(RED);
       expect(buf.getPx(2, 3)).assertEqual(RED);
@@ -204,7 +204,7 @@ export default function pixelCoreTest() {
 
     it('Raster_stamp_size3_centered', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.stamp(buf, 2, 2, 3, RED, false);
+      Raster.stamp(buf, 2, 2, 3, RED, MirrorMode.None);
       expect(buf.getPx(1, 1)).assertEqual(RED);
       expect(buf.getPx(3, 3)).assertEqual(RED);
       expect(buf.getPx(2, 2)).assertEqual(RED);
@@ -215,7 +215,7 @@ export default function pixelCoreTest() {
 
     it('Raster_stamp_mirror_x', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.stamp(buf, 1, 1, 1, RED, true);
+      Raster.stamp(buf, 1, 1, 1, RED, MirrorMode.X);
       expect(buf.getPx(1, 1)).assertEqual(RED);
       expect(buf.getPx(6, 1)).assertEqual(RED);
       expect(countOpaque(buf)).assertEqual(2);
@@ -223,7 +223,7 @@ export default function pixelCoreTest() {
 
     it('Raster_line_horizontal', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.drawLine(buf, 1, 2, 4, 2, 1, BLACK, false);
+      Raster.drawLine(buf, 1, 2, 4, 2, 1, BLACK, MirrorMode.None);
       for (let x = 1; x <= 4; x++) {
         expect(buf.getPx(x, 2)).assertEqual(BLACK);
       }
@@ -232,7 +232,7 @@ export default function pixelCoreTest() {
 
     it('Raster_line_vertical', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.drawLine(buf, 3, 1, 3, 5, 1, BLACK, false);
+      Raster.drawLine(buf, 3, 1, 3, 5, 1, BLACK, MirrorMode.None);
       for (let y = 1; y <= 5; y++) {
         expect(buf.getPx(3, y)).assertEqual(BLACK);
       }
@@ -241,7 +241,7 @@ export default function pixelCoreTest() {
 
     it('Raster_line_diagonal_golden', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.drawLine(buf, 0, 0, 3, 3, 1, BLACK, false);
+      Raster.drawLine(buf, 0, 0, 3, 3, 1, BLACK, MirrorMode.None);
       for (let i = 0; i <= 3; i++) {
         expect(buf.getPx(i, i)).assertEqual(BLACK);
       }
@@ -251,7 +251,7 @@ export default function pixelCoreTest() {
     it('Raster_line_l_shape_golden', 0, () => {
       // Bresenham (0,0)->(3,1)：期望点集 (0,0)(1,0)(2,1)(3,1)，非对角点不着色。
       const buf = new PixelBuffer(8, 8);
-      Raster.drawLine(buf, 0, 0, 3, 1, 1, BLACK, false);
+      Raster.drawLine(buf, 0, 0, 3, 1, 1, BLACK, MirrorMode.None);
       expect(buf.getPx(0, 0)).assertEqual(BLACK);
       expect(buf.getPx(1, 0)).assertEqual(BLACK);
       expect(buf.getPx(2, 1)).assertEqual(BLACK);
@@ -263,7 +263,7 @@ export default function pixelCoreTest() {
 
     it('Raster_line_mirror_x', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.drawLine(buf, 0, 0, 3, 3, 1, RED, true);
+      Raster.drawLine(buf, 0, 0, 3, 3, 1, RED, MirrorMode.X);
       expect(buf.getPx(7, 0)).assertEqual(RED);
       expect(buf.getPx(4, 3)).assertEqual(RED);
       expect(countOpaque(buf)).assertEqual(8);
@@ -340,7 +340,7 @@ export default function pixelCoreTest() {
     // ---------- Raster：矩形/椭圆（M1） ----------
     it('Raster_rect_outline_golden', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeRect(buf, 0, 0, 3, 2, 1, BLACK, false, false);
+      Raster.strokeRect(buf, 0, 0, 3, 2, 1, BLACK, MirrorMode.None, false);
       for (let x = 0; x <= 3; x++) {
         expect(buf.getPx(x, 0)).assertEqual(BLACK);
         expect(buf.getPx(x, 2)).assertEqual(BLACK);
@@ -354,7 +354,7 @@ export default function pixelCoreTest() {
 
     it('Raster_rect_filled_golden', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeRect(buf, 1, 1, 3, 2, 1, RED, false, true);
+      Raster.strokeRect(buf, 1, 1, 3, 2, 1, RED, MirrorMode.None, true);
       for (let y = 1; y <= 2; y++) {
         for (let x = 1; x <= 3; x++) {
           expect(buf.getPx(x, y)).assertEqual(RED);
@@ -365,7 +365,7 @@ export default function pixelCoreTest() {
 
     it('Raster_rect_coords_normalized', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeRect(buf, 3, 2, 0, 0, 1, BLACK, false, false);
+      Raster.strokeRect(buf, 3, 2, 0, 0, 1, BLACK, MirrorMode.None, false);
       expect(buf.getPx(0, 0)).assertEqual(BLACK);
       expect(buf.getPx(3, 2)).assertEqual(BLACK);
       expect(countOpaque(buf)).assertEqual(10);
@@ -373,7 +373,7 @@ export default function pixelCoreTest() {
 
     it('Raster_rect_filled_mirror', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeRect(buf, 1, 1, 2, 2, 1, RED, true, true);
+      Raster.strokeRect(buf, 1, 1, 2, 2, 1, RED, MirrorMode.X, true);
       for (let y = 1; y <= 2; y++) {
         for (let x = 1; x <= 2; x++) {
           expect(buf.getPx(x, y)).assertEqual(RED);
@@ -386,7 +386,7 @@ export default function pixelCoreTest() {
     it('Raster_ellipse_outline_golden', 0, () => {
       // bbox (0,0)-(4,2)：cx=2 cy=1 rx=2 ry=1 → 弧点 8 个。
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeEllipse(buf, 0, 0, 4, 2, 1, BLACK, false, false);
+      Raster.strokeEllipse(buf, 0, 0, 4, 2, 1, BLACK, MirrorMode.None, false);
       const arc: number[] = [2, 0, 1, 0, 3, 0, 0, 1, 4, 1, 1, 2, 2, 2, 3, 2];
       for (let i = 0; i < arc.length; i += 2) {
         expect(buf.getPx(arc[i], arc[i + 1])).assertEqual(BLACK);
@@ -396,7 +396,7 @@ export default function pixelCoreTest() {
 
     it('Raster_ellipse_filled_golden', 0, () => {
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeEllipse(buf, 0, 0, 4, 2, 1, BLACK, false, true);
+      Raster.strokeEllipse(buf, 0, 0, 4, 2, 1, BLACK, MirrorMode.None, true);
       for (let x = 1; x <= 3; x++) {
         expect(buf.getPx(x, 0)).assertEqual(BLACK);
         expect(buf.getPx(x, 2)).assertEqual(BLACK);
@@ -410,7 +410,7 @@ export default function pixelCoreTest() {
     it('Raster_ellipse_degenerate_line', 0, () => {
       // rx=0（宽 1）→ 退化为竖线。
       const buf = new PixelBuffer(8, 8);
-      Raster.strokeEllipse(buf, 2, 0, 2, 3, 1, BLACK, false, false);
+      Raster.strokeEllipse(buf, 2, 0, 2, 3, 1, BLACK, MirrorMode.None, false);
       for (let y = 0; y <= 3; y++) {
         expect(buf.getPx(2, y)).assertEqual(BLACK);
       }
@@ -419,7 +419,7 @@ export default function pixelCoreTest() {
 
     it('Raster_ellipse_center_symmetry', 0, () => {
       const buf = new PixelBuffer(9, 9);
-      Raster.strokeEllipse(buf, 0, 0, 8, 8, 1, BLACK, false, false);
+      Raster.strokeEllipse(buf, 0, 0, 8, 8, 1, BLACK, MirrorMode.None, false);
       let n = 0;
       for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
@@ -493,6 +493,98 @@ export default function pixelCoreTest() {
       const buf = new PixelBuffer(64, 64);
       expect(FloodFill.fill(buf, 0, 0, RED)).assertTrue();
       expect(buf.getPx(63, 63)).assertEqual(RED);
+    });
+
+    // ---------- 四向对称 / 抖动填充（1.1.0-D） ----------
+    it('Raster_stamp_mirror_y', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.stamp(buf, 1, 2, 1, RED, MirrorMode.Y);
+      expect(buf.getPx(1, 2)).assertEqual(RED);
+      expect(buf.getPx(1, 5)).assertEqual(RED);
+      expect(countOpaque(buf)).assertEqual(2);
+    });
+
+    it('Raster_stamp_mirror_xy', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.stamp(buf, 1, 2, 1, RED, MirrorMode.XY);
+      expect(buf.getPx(1, 2)).assertEqual(RED);
+      expect(buf.getPx(6, 2)).assertEqual(RED);
+      expect(buf.getPx(1, 5)).assertEqual(RED);
+      expect(buf.getPx(6, 5)).assertEqual(RED);
+      expect(countOpaque(buf)).assertEqual(4);
+    });
+
+    it('Raster_line_mirror_xy', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.drawLine(buf, 0, 0, 3, 3, 1, RED, MirrorMode.XY);
+      // 主线 4 点 + X/Y/XY 三条镜像线各 4 点，互不重叠 = 16。
+      expect(buf.getPx(0, 0)).assertEqual(RED);
+      expect(buf.getPx(7, 0)).assertEqual(RED);
+      expect(buf.getPx(0, 7)).assertEqual(RED);
+      expect(buf.getPx(7, 7)).assertEqual(RED);
+      expect(countOpaque(buf)).assertEqual(16);
+    });
+
+    it('Raster_rect_filled_mirror_y', 0, () => {
+      const buf = new PixelBuffer(8, 8);
+      Raster.strokeRect(buf, 0, 1, 1, 2, 1, RED, MirrorMode.Y, true);
+      // 原区 (0..1,1..2) 4px + Y 镜像行 (0..1,5..6) 4px = 8。
+      expect(buf.getPx(0, 1)).assertEqual(RED);
+      expect(buf.getPx(1, 2)).assertEqual(RED);
+      expect(buf.getPx(0, 5)).assertEqual(RED);
+      expect(buf.getPx(1, 6)).assertEqual(RED);
+      expect(countOpaque(buf)).assertEqual(8);
+    });
+
+    it('FloodFill_dither_checkerboard', 0, () => {
+      const buf = new PixelBuffer(6, 4);
+      expect(FloodFill.fill(buf, 0, 0, RED, MirrorMode.None, true)).assertTrue();
+      // 6×4=24 像素棋盘格着色一半；种子 (0,0) 偶宇着色。
+      expect(countOpaque(buf)).assertEqual(12);
+      expect(buf.getPx(0, 0)).assertEqual(RED);
+      expect(buf.getPx(1, 0)).assertEqual(0);
+      expect(buf.getPx(5, 3)).assertEqual(RED);
+    });
+
+    it('FloodFill_dither_no_write_returns_false', 0, () => {
+      // 孤点 (0,1) 奇宇（三邻全 BLACK）：抖动着色零点 → false（无变更）。
+      const buf = new PixelBuffer(3, 3);
+      buf.setPx(0, 0, BLACK);
+      buf.setPx(0, 2, BLACK);
+      buf.setPx(1, 1, BLACK);
+      expect(FloodFill.fill(buf, 0, 1, RED, MirrorMode.None, true)).assertFalse();
+      expect(buf.getPx(0, 1)).assertEqual(0);
+    });
+
+    it('FloodFill_mirror_y_two_regions', 0, () => {
+      // 8×4 行 2 全 BLACK 分隔；种子 (0,0) 与 Y 镜像种子 (0,3) 各自区域同步填。
+      const buf = new PixelBuffer(8, 4);
+      for (let x = 0; x < 8; x++) {
+        buf.setPx(x, 2, BLACK);
+      }
+      expect(FloodFill.fill(buf, 0, 0, RED, MirrorMode.Y)).assertTrue();
+      for (let x = 0; x < 8; x++) {
+        expect(buf.getPx(x, 0)).assertEqual(RED);
+        expect(buf.getPx(x, 1)).assertEqual(RED);
+        expect(buf.getPx(x, 3)).assertEqual(RED);
+        expect(buf.getPx(x, 2)).assertEqual(BLACK);
+      }
+    });
+
+    it('FloodFill_mirror_xy_quadrants', 0, () => {
+      // 8×8 行 3/列 3 十字分隔 → 四象限；种子 (0,0) XY 四点同步填满全域。
+      const buf = new PixelBuffer(8, 8);
+      for (let i = 0; i < 8; i++) {
+        buf.setPx(i, 3, BLACK);
+        buf.setPx(3, i, BLACK);
+      }
+      expect(FloodFill.fill(buf, 0, 0, RED, MirrorMode.XY)).assertTrue();
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          const expected = (x === 3 || y === 3) ? BLACK : RED;
+          expect(buf.getPx(x, y)).assertEqual(expected);
+        }
+      }
     });
 
     // ---------- UndoStack（M1） ----------

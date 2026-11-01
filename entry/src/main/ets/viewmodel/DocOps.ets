@@ -8,6 +8,7 @@
 import { PixelDoc, PixelLayer, MAX_LAYERS } from '../core/PixelDoc';
 import { PixelBuffer } from '../core/PixelBuffer';
 import { UndoStack, DocEntry } from '../core/UndoStack';
+import { Font5x7 } from '../core/Font5x7';
 import { EditorSession } from './EditorSession';
 
 export class DocOps {
@@ -384,5 +385,26 @@ export class DocOps {
   static cancelSelection(session: EditorSession): void {
     session.sel = undefined;
     session.selCopied = false;
+  }
+
+  // ---------- 文本插入（1.1.0 创作深度） ----------
+
+  /** 活动 cel 自 (x,y) 写点阵文本（大写化，只写字形像素，越界裁剪）；CelEntry 撤销。 */
+  static insertText(doc: PixelDoc, session: EditorSession, x: number, y: number,
+    text: string, scale: number): boolean {
+    const cell = doc.activeCell();
+    const t = text.trim().toUpperCase();
+    if (cell === undefined || t.length === 0 || scale < 1) {
+      return false;
+    }
+    const before = cell.data.slice();
+    Font5x7.drawText(cell.data, doc.w, doc.h, x, y, t, session.color, scale);
+    const entry = UndoStack.entryIfChanged(cell.data, before);
+    if (entry === undefined) {
+      return false;
+    }
+    session.undoStack.push(entry);
+    DocOps.bump(session);
+    return true;
   }
 }

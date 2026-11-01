@@ -9,7 +9,7 @@ import { describe, it, expect } from '@ohos/hypium';
 import { PixelBuffer } from '../../../main/ets/core/PixelBuffer';
 import { PixelDoc, MAX_LAYERS } from '../../../main/ets/core/PixelDoc';
 import { Compose } from '../../../main/ets/core/Compose';
-import { Raster } from '../../../main/ets/core/Raster';
+import { Raster, MirrorMode } from '../../../main/ets/core/Raster';
 import { UndoStack } from '../../../main/ets/core/UndoStack';
 import { EditorSession, SelRect } from '../../../main/ets/viewmodel/EditorSession';
 import { DocOps } from '../../../main/ets/viewmodel/DocOps';
@@ -258,7 +258,7 @@ export default function pixelDocTest() {
       // ① 像素类：底层画红点。
       const cel = doc.getCell(0, 0)!;
       const before = cel.data.slice();
-      Raster.stamp(cel, 1, 1, 1, RED, false);
+      Raster.stamp(cel, 1, 1, 1, RED, MirrorMode.None);
       const entry = UndoStack.entryIfChanged(cel.data, before);
       expect(entry !== undefined).assertTrue();
       session.undoStack.push(entry!);

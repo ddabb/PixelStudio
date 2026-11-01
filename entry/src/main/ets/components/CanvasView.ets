@@ -14,7 +14,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { PixelDoc } from '../core/PixelDoc';
 import { PixelBuffer } from '../core/PixelBuffer';
 import { Compose } from '../core/Compose';
-import { Raster } from '../core/Raster';
+import { Raster, MirrorMode } from '../core/Raster';
 import { FloodFill } from '../core/FloodFill';
 import { UndoStack } from '../core/UndoStack';
 import { GestureTracker, GestureSink } from '../core/GestureTracker';
@@ -39,6 +39,9 @@ const FALLBACK_CHECKER_B = 0xFFC9C9D6;
 export struct CanvasView {
   @Require @Param doc: PixelDoc;
   @Require @Param session: EditorSession;
+  /** 文本工具：点击像素回调（EditorPage 弹 TextToolDialog）；默认空实现。 */
+  @Param onTextRequest: (px: number, py: number) => void
+    = (_px: number, _py: number): void => {};
 
   @Local pixelMap: image.PixelMap | undefined = undefined;
   @Local checkerMap: image.PixelMap | undefined = undefined;
@@ -193,7 +196,7 @@ export struct CanvasView {
 
   private toolInstant(): boolean {
     const t = this.session.currentTool;
-    return t === Tool.Fill || t === Tool.Eyedropper;
+    return t === Tool.Fill || t === Tool.Eyedropper || t === Tool.Text;
   }
 
   private strokeArgb(): number {
@@ -210,13 +213,13 @@ export struct CanvasView {
     const filled = this.session.shapeFilled;
     switch (this.session.currentTool) {
       case Tool.Line:
-        Raster.drawLine(cell, x0, y0, x1, y1, this.session.brushSize, argb, this.session.mirrorX);
+        Raster.drawLine(cell, x0, y0, x1, y1, this.session.brushSize, argb, this.session.mirrorMode);
         break;
       case Tool.Rect:
-        Raster.strokeRect(cell, x0, y0, x1, y1, this.session.brushSize, argb, this.session.mirrorX, filled);
+        Raster.strokeRect(cell, x0, y0, x1, y1, this.session.brushSize, argb, this.session.mirrorMode, filled);
         break;
       case Tool.Ellipse:
-        Raster.strokeEllipse(cell, x0, y0, x1, y1, this.session.brushSize, argb, this.session.mirrorX, filled);
+        Raster.strokeEllipse(cell, x0, y0, x1, y1, this.session.brushSize, argb, this.session.mirrorMode, filled);
         break;
       default:
         break;
@@ -354,7 +357,7 @@ export struct CanvasView {
       case Tool.Pencil:
       case Tool.Eraser:
         if (!this.strokeVoid) {
-          Raster.stamp(cell, px, py, this.session.brushSize, this.strokeArgb(), this.session.mirrorX);
+          Raster.stamp(cell, px, py, this.session.brushSize, this.strokeArgb(), this.session.mirrorMode);
           this.strokeChanged = true;
           Haptics.tick();
           this.armLongPress();
@@ -362,7 +365,8 @@ export struct CanvasView {
         }
         break;
       case Tool.Fill:
-        if (!this.strokeVoid && FloodFill.fill(cell, px, py, this.session.color)) {
+        if (!this.strokeVoid && FloodFill.fill(cell, px, py, this.session.color,
+          this.session.mirrorMode, this.session.ditherFill)) {
           this.strokeChanged = true;
           Haptics.tick();
           this.render();
@@ -376,6 +380,12 @@ export struct CanvasView {
       case Tool.Selection:
         if (!this.strokeVoid) {
           this.selectionBegin(px, py);
+        }
+        break;
+      case Tool.Text:
+        if (!this.strokeVoid) {
+          this.onTextRequest(px, py);
+          Haptics.tick();
         }
         break;
       default:
@@ -417,7 +427,7 @@ export struct CanvasView {
       return;
     }
     Raster.drawLine(cell, this.lastPx, this.lastPy, px, py,
-      this.session.brushSize, this.strokeArgb(), this.session.mirrorX);
+      this.session.brushSize, this.strokeArgb(), this.session.mirrorMode);
     this.lastPx = px;
     this.lastPy = py;
     this.strokeChanged = true;
@@ -441,7 +451,7 @@ export struct CanvasView {
       } else if ((this.session.currentTool === Tool.Pencil || this.session.currentTool === Tool.Eraser)
         && cell.inBounds(px, py) && (px !== this.lastPx || py !== this.lastPy)) {
         Raster.drawLine(cell, this.lastPx, this.lastPy, px, py,
-          this.session.brushSize, this.strokeArgb(), this.session.mirrorX);
+          this.session.brushSize, this.strokeArgb(), this.session.mirrorMode);
         this.strokeChanged = true;
       }
     }
@@ -586,18 +596,19 @@ export struct CanvasView {
 
   // ---------- 悬停像素光标（1.1.0，鼠标/2in1） ----------
 
-  /** 绘制/点取类工具显示光标（选区/文本除外）；播放中不显示。 */
+  /** 绘制/点取/文本类工具显示光标（选区除外）；播放中不显示。 */
   private cursorVisible(): boolean {
     const t = this.session.currentTool;
     return !this.session.playing
       && (t === Tool.Pencil || t === Tool.Eraser || t === Tool.Fill
-        || t === Tool.Line || t === Tool.Rect || t === Tool.Ellipse || t === Tool.Eyedropper);
+        || t === Tool.Line || t === Tool.Rect || t === Tool.Ellipse || t === Tool.Eyedropper
+        || t === Tool.Text);
   }
 
-  /** 覆盖块尺寸：绘制类 = 笔宽；填充/吸管 = 单像素。 */
+  /** 覆盖块尺寸：绘制类 = 笔宽；填充/吸管/文本 = 单像素。 */
   private cursorSize(): number {
     const t = this.session.currentTool;
-    return (t === Tool.Fill || t === Tool.Eyedropper) ? 1 : this.session.brushSize;
+    return (t === Tool.Fill || t === Tool.Eyedropper || t === Tool.Text) ? 1 : this.session.brushSize;
   }
 
   private updateHover(hovering: boolean, vx: number, vy: number): void {
@@ -653,7 +664,8 @@ export struct CanvasView {
             : (this.session.currentTool === Tool.Rect ? 'tool_rect'
               : (this.session.currentTool === Tool.Ellipse ? 'tool_ellipse'
                 : (this.session.currentTool === Tool.Eyedropper ? 'tool_eyedropper'
-                  : 'tool_selection'))))));
+                  : (this.session.currentTool === Tool.Text ? 'tool_text'
+                    : 'tool_selection')))))));
     try {
       return ctx.resourceManager.getStringByNameSync(key);
     } catch (e) {
@@ -708,7 +720,7 @@ export struct CanvasView {
             zoom: this.session.zoom,
             docW: this.doc.w,
             docH: this.doc.h,
-            mirrorX: this.session.mirrorX
+            mirrorMode: this.session.mirrorMode
           })
         }
       }

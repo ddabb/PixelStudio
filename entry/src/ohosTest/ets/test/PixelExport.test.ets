@@ -1,5 +1,5 @@
 /**
- * pixelExportTest — 导出核心套件（M4 批）：GifCodec / Resample / BeadStats / PxsFile / Font5x7 / ChartRender。
+ * pixelExportTest — 导出核心套件（M4 批）：GifCodec / Resample / BeadStats / PxsFile / Font5x7 / ChartRender / SheetRender。
  * 运行协议（模拟器 class 过滤）：
  *   hdc shell aa test -b com.ddabb.pixelstudio -m entry_test -s unittest OpenHarmonyTestRunner
  *     -s class pixelExportTest -s timeout 15000
@@ -21,6 +21,8 @@ import { PixelBuffer } from '../../../main/ets/core/PixelBuffer';
 import { PxsFile, PxsMeta, PxsLayerMeta } from '../../../main/ets/core/PxsFile';
 import { Font5x7 } from '../../../main/ets/core/Font5x7';
 import { ChartRender, BeadChartOptions } from '../../../main/ets/core/ChartRender';
+import { PixelDoc } from '../../../main/ets/core/PixelDoc';
+import { SheetRender } from '../../../main/ets/core/SheetRender';
 
 // ---------- 测试辅助：迷你 GIF 解析器（独立于编码器实现，作字节级交叉验证） ----------
 
@@ -840,6 +842,37 @@ export default function pixelExportTest() {
       expect(px.length).assertEqual(pw * ph * 4);
     });
 
+    it('Font5x7_punctuation_glyphs', 0, () => {
+      // 1.1.0-D：8 个标点字形入集（文本工具输入域）。
+      expect(Font5x7.has('.')).assertTrue();
+      expect(Font5x7.has(',')).assertTrue();
+      expect(Font5x7.has(':')).assertTrue();
+      expect(Font5x7.has('!')).assertTrue();
+      expect(Font5x7.has('?')).assertTrue();
+      expect(Font5x7.has('\'')).assertTrue();
+      expect(Font5x7.has('(')).assertTrue();
+      expect(Font5x7.has(')')).assertTrue();
+      expect(Font5x7.has('#')).assertFalse();
+      expect(Font5x7.textWidth('A!', 1)).assertEqual(11);
+    });
+
+    it('Font5x7_draw_period_pixels', 0, () => {
+      // '.' = 行 5/6 列 2/3 四点：锚点 (1,1) → 落 (3,6)(4,6)(3,7)(4,7)。
+      const pw = 8;
+      const ph = 8;
+      const px: Uint8Array = new Uint8Array(pw * ph * 4);
+      px.fill(255);
+      Font5x7.drawText(px, pw, ph, 1, 1, '.', 0xFF000000, 1);
+      const at = (x: number, y: number): number => (y * pw + x) * 4;
+      expect(px[at(3, 6)]).assertEqual(0);
+      expect(px[at(4, 6)]).assertEqual(0);
+      expect(px[at(3, 7)]).assertEqual(0);
+      expect(px[at(4, 7)]).assertEqual(0);
+      expect(px[at(2, 6)]).assertEqual(255);
+      expect(px[at(5, 6)]).assertEqual(255);
+      expect(px[at(3, 5)]).assertEqual(255);
+    });
+
     // ---------- ChartRender ----------
     it('Chart_size_and_white_bg', 0, () => {
       const opts: BeadChartOptions = new BeadChartOptions();
@@ -956,6 +989,44 @@ export default function pixelExportTest() {
       const a: Uint8Array = ChartRender.renderChart(indices, 64, 64, TEST_BEADS, opts);
       const b: Uint8Array = ChartRender.renderChart(new Int32Array(indices), 64, 64, TEST_BEADS, opts);
       expect(bytesEqual(a, b)).assertTrue();
+    });
+
+    // ---------- SheetRender（1.1.0-D） ----------
+    it('SheetRender_strip_layout', 0, () => {
+      // 4×4 三帧：f0 红(0,0)、f1 绿(1,1)、f2 蓝(2,2) → 12×4 水平条图，透明保留。
+      const doc = new PixelDoc(4, 4);
+      doc.addFrame();
+      doc.addFrame();
+      doc.cells[0][0].setPx(0, 0, 0xFFFF0000);
+      doc.cells[1][0].setPx(1, 1, 0xFF00FF00);
+      doc.cells[2][0].setPx(2, 2, 0xFF0000FF);
+      const strip = SheetRender.renderStrip(doc);
+      expect(strip.w).assertEqual(12);
+      expect(strip.h).assertEqual(4);
+      expect(strip.buf.length).assertEqual(12 * 4 * 4);
+      const at = (x: number, y: number): number => (y * strip.w + x) * 4;
+      expect(strip.buf[at(0, 0)]).assertEqual(255);
+      expect(strip.buf[at(0, 0) + 3]).assertEqual(255);
+      expect(strip.buf[at(5, 1) + 1]).assertEqual(255);
+      expect(strip.buf[at(5, 1) + 3]).assertEqual(255);
+      expect(strip.buf[at(10, 2) + 2]).assertEqual(255);
+      expect(strip.buf[at(10, 2) + 3]).assertEqual(255);
+      // f0 (1,1) 未画 → 条图对应位 alpha 0（透明不丢）。
+      expect(strip.buf[at(1, 1) + 3]).assertEqual(0);
+    });
+
+    it('SheetRender_atlas_json_fields', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      doc.addFrame();
+      const json = SheetRender.atlasJson(doc, 'demo_sheet.png', 12);
+      expect(json.includes('"frames":2')).assertTrue();
+      expect(json.includes('"frameW":4')).assertTrue();
+      expect(json.includes('"frameH":4')).assertTrue();
+      expect(json.includes('"sheetW":8')).assertTrue();
+      expect(json.includes('"sheetH":4')).assertTrue();
+      expect(json.includes('"fps":12')).assertTrue();
+      expect(json.includes('"sheet":"demo_sheet.png"')).assertTrue();
+      expect(json.includes('"xs":[0,4]')).assertTrue();
     });
   });
 }

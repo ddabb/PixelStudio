@@ -1,16 +1,14 @@
 /**
- * pages/EditorPage.ets — 编辑器主页（开发计划 §5.1，M1/M3/M4）：
- * 顶栏（返回 + 工程名 + 尺寸 + 脏标记 + 撤销/重做） / 画布区 /
- * 工具行（8 工具 + 镜像 + 实心 + 网格三态） / 笔宽行 / 调色板横滑行。
- * 底部 Tab：画布 / 图层 / 帧（缩略条 + 播放 + FPS + 洋葱皮）/ 导出（M4）。
- * 播放 = setInterval 循环推进 activeFrame + tick 驱动重渲染；任意触屏/撤销/帧操作即停。
- * 工程（M4）：EditorLaunch 静态参数进入（新建/打开 .pxs）；30s 自动保存 +
- * onBackPress/onPageHide 即存（杀进程恢复损失 ≤30s）；ready 门控异步加载。
+ * pages/EditorPage.ets — 编辑器主页（开发计划 §5.1）：顶栏 / 画布 / 工具行 / 笔宽行 / 调色板行；
+ * 底部 Tab：画布/图层/帧/导出。播放 = setInterval 循环推进 activeFrame；触屏/撤销/帧操作即停。
+ * 工程：EditorLaunch 静态参数进入；30s 自动保存 + onBackPress/onPageHide 即存；ready 门控加载。
+ * 1.1.0-D：文本工具（TextToolDialog 根部单挂载）+ 四向对称 + 抖动填充。
  * 注意：@Builder 值传参在 V2 是快照不响应，所有会变的状态一律在 Builder 体内读取。
  */
 
 import { PixelDoc } from '../core/PixelDoc';
 import { PxsDoc } from '../core/PxsFile';
+import { MirrorMode } from '../core/Raster';
 import { UndoStack } from '../core/UndoStack';
 import { EditorSession, Tool, GridMode } from '../viewmodel/EditorSession';
 import { DocOps } from '../viewmodel/DocOps';
@@ -24,6 +22,7 @@ import { FrameStrip } from '../components/FrameStrip';
 import { PaletteBar } from '../components/PaletteBar';
 import { PalettePanel } from '../components/PalettePanel';
 import { ExportPanel } from '../components/ExportPanel';
+import { TextToolDialog } from '../components/TextToolDialog';
 
 /** 播放定时器最小间隔（ms）：对齐 60Hz 帧节流，防高 FPS 空转。 */
 const PLAY_TICK_MS = 16;
@@ -47,6 +46,10 @@ struct EditorPage {
   /** 工程加载/新建完成门控：异步打开期间显示加载态，防挂载旧 doc。 */
   @Local ready: boolean = false;
   @Local projectName: string = '';
+  /** 文本工具（1.1.0-D）：TextToolDialog 开关 + 插入锚点（CanvasView onTextRequest）。 */
+  @Local textOpen: boolean = false;
+  @Local textX: number = 0;
+  @Local textY: number = 0;
   private projectId: string = '';
   private projectStore: ProjectStore = new ProjectStore();
   private autosaveTimerId: number = -1;
@@ -102,16 +105,18 @@ struct EditorPage {
     this.paletteStore.saveNow();
   }
 
-  /** 系统返回：先落盘再退出（返回键/侧滑统一入口）。 */
+  /** 系统返回：文本框打开先收框；否则先落盘再退出（返回键/侧滑统一入口）。 */
   onBackPress(): boolean {
+    if (this.textOpen) {
+      this.textOpen = false;
+      return true;
+    }
     this.saveNow();
     return false;
   }
 
   /** 页面隐藏（后台/跳转）即保存：进程被杀损失 ≤ 自动保存周期。 */
-  onPageHide(): void {
-    this.saveNow();
-  }
+  onPageHide(): void { this.saveNow(); }
 
   // ---------- 工程持久化（§6.4：30s 自动保存 + 原子落盘） ----------
 
@@ -259,7 +264,7 @@ struct EditorPage {
     return $r('app.string.grid_auto');
   }
 
-  /** 工具切换按钮（7 工具）：active 状态在体内读取 session.currentTool。 */
+  /** 工具切换按钮（9 工具）：active 状态在体内读取 session.currentTool。 */
   @Builder
   toolButton(label: ResourceStr, tool: Tool) {
     Button(label)
@@ -305,22 +310,33 @@ struct EditorPage {
       })
   }
 
+  /** 四向对称按钮（1.1.0-D）：关→X→Y→XY 循环；active = 非 None。 */
   @Builder
   mirrorButton() {
-    Button($r('app.string.mirror_x'))
+    Button(this.mirrorLabel())
       .type(ButtonType.Normal)
       .borderRadius(10)
       .height(36)
       .padding({ left: 14, right: 14 })
       .fontSize(14)
-      .backgroundColor(this.session.mirrorX
+      .backgroundColor(this.session.mirrorMode !== MirrorMode.None
         ? $r('app.color.brand') : $r('app.color.card_background'))
-      .fontColor(this.session.mirrorX
+      .fontColor(this.session.mirrorMode !== MirrorMode.None
         ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
       .onClick(() => {
-        this.session.mirrorX = !this.session.mirrorX;
+        const m = this.session.mirrorMode;
+        this.session.mirrorMode = m === MirrorMode.None ? MirrorMode.X
+          : (m === MirrorMode.X ? MirrorMode.Y
+            : (m === MirrorMode.Y ? MirrorMode.XY : MirrorMode.None));
         Haptics.tick();
       })
+  }
+
+  private mirrorLabel(): ResourceStr {
+    const m = this.session.mirrorMode;
+    return m === MirrorMode.X ? $r('app.string.mirror_x')
+      : (m === MirrorMode.Y ? $r('app.string.mirror_y')
+        : (m === MirrorMode.XY ? $r('app.string.mirror_xy') : $r('app.string.mirror_off')));
   }
 
   @Builder
@@ -435,7 +451,25 @@ struct EditorPage {
         this.toolButton($r('app.string.tool_ellipse'), Tool.Ellipse)
         this.toolButton($r('app.string.tool_eyedropper'), Tool.Eyedropper)
         this.toolButton($r('app.string.tool_selection'), Tool.Selection)
+        this.toolButton($r('app.string.tool_text'), Tool.Text)
         this.mirrorButton()
+        if (this.session.currentTool === Tool.Fill) {
+          // 抖动填充（1.1.0-D）：仅 Fill 工具时入行。
+          Button($r('app.string.tool_dither'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(36)
+            .padding({ left: 14, right: 14 })
+            .fontSize(14)
+            .backgroundColor(this.session.ditherFill
+              ? $r('app.color.brand') : $r('app.color.card_background'))
+            .fontColor(this.session.ditherFill
+              ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
+            .onClick(() => {
+              this.session.ditherFill = !this.session.ditherFill;
+              Haptics.tick();
+            })
+        }
         if (this.session.currentTool === Tool.Rect || this.session.currentTool === Tool.Ellipse) {
           this.filledButton()
         }
@@ -520,7 +554,10 @@ struct EditorPage {
   compactBody() {
     Column() {
       Stack() {
-        CanvasView({ doc: this.doc, session: this.session })
+        CanvasView({
+          doc: this.doc, session: this.session,
+          onTextRequest: (px: number, py: number): void => { this.textX = px; this.textY = py; this.textOpen = true; }
+        })
         if (this.panelMode === 1) {
           LayerPanel({ doc: this.doc, session: this.session })
         }
@@ -573,7 +610,10 @@ struct EditorPage {
         // 左列：画布常驻 + 工具组；调色板面板覆盖左列。
         Stack() {
           Column() {
-            CanvasView({ doc: this.doc, session: this.session })
+            CanvasView({
+              doc: this.doc, session: this.session,
+              onTextRequest: (px: number, py: number): void => { this.textX = px; this.textY = py; this.textOpen = true; }
+            })
               .layoutWeight(1)
             this.canvasTools()
           }
@@ -611,11 +651,7 @@ struct EditorPage {
             FrameStrip({
               doc: this.doc,
               session: this.session,
-              onPlay: (): void => {
-                if (this.panelMode !== 0) {
-                  this.panelMode = 0;
-                }
-              }
+              onPlay: (): void => { if (this.panelMode !== 0) { this.panelMode = 0; } }
             })
               .layoutWeight(1)
           }
@@ -682,7 +718,9 @@ struct EditorPage {
     .backgroundColor($r('app.color.card_background'))
   }
 
-  build() {
+  /** 主布局（顶栏 + compact/wide 自适应体）；Builder 体内直读状态保证响应。 */
+  @Builder
+  mainBody() {
     Column() {
       // 顶栏：返回 + 工程名 + 尺寸 + 脏标记 + 撤销/重做
       Row({ space: 8 }) {
@@ -750,5 +788,21 @@ struct EditorPage {
     .onAreaChange((_old: Area, newArea: Area) => {
       this.isWide = Number(newArea.width) >= WIDE_MIN_VP;
     })
+  }
+
+  /** 根 Stack：主布局 + TextToolDialog 全屏单挂载（compact/wide 共用，1.1.0-D）。 */
+  build() {
+    Stack() {
+      this.mainBody()
+      if (this.textOpen) {
+        TextToolDialog({
+          doc: this.doc, session: this.session,
+          anchorX: this.textX, anchorY: this.textY,
+          onClose: (): void => { this.textOpen = false; }
+        })
+      }
+    }
+    .width('100%')
+    .height('100%')
   }
 }

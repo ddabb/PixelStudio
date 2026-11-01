@@ -98,7 +98,19 @@
     },
     {
       "name": "mirror_x",
-      "value": "镜像X"
+      "value": "对称·X"
+    },
+    {
+      "name": "mirror_y",
+      "value": "对称·Y"
+    },
+    {
+      "name": "mirror_xy",
+      "value": "对称·XY"
+    },
+    {
+      "name": "mirror_off",
+      "value": "对称·关"
     },
     {
       "name": "clear_canvas",
@@ -123,6 +135,14 @@
     {
       "name": "tool_eyedropper",
       "value": "吸管"
+    },
+    {
+      "name": "tool_text",
+      "value": "文本"
+    },
+    {
+      "name": "tool_dither",
+      "value": "抖动填充"
     },
     {
       "name": "shape_filled",
@@ -155,6 +175,30 @@
     {
       "name": "tool_selection",
       "value": "选区"
+    },
+    {
+      "name": "text_dialog_title",
+      "value": "插入文本"
+    },
+    {
+      "name": "text_hint",
+      "value": "输入文本（A-Z 0-9 与标点）"
+    },
+    {
+      "name": "text_scale",
+      "value": "字号"
+    },
+    {
+      "name": "text_insert",
+      "value": "插入"
+    },
+    {
+      "name": "text_width_px",
+      "value": "宽度 %d px"
+    },
+    {
+      "name": "text_overflow",
+      "value": "越界部分将被裁剪"
     },
     {
       "name": "tab_canvas",
@@ -395,6 +439,18 @@
     {
       "name": "export_dither",
       "value": "抖动"
+    },
+    {
+      "name": "export_format_sheet",
+      "value": "精灵图集"
+    },
+    {
+      "name": "export_sheet_desc",
+      "value": "全部帧水平拼接为单张 PNG（透明保留），附坐标 JSON 供游戏引擎读取"
+    },
+    {
+      "name": "export_sheet_json",
+      "value": "分享坐标 JSON"
     },
     {
       "name": "export_share",

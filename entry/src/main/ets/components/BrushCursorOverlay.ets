@@ -1,9 +1,11 @@
 /**
  * components/BrushCursorOverlay.ets — 悬停像素光标覆盖层（1.1.0 手感层，鼠标/2in1）。
  * 画笔覆盖块 = 锚点像素按 Raster.stamp 偏移规则（-floor((size-1)/2)）展开的
- * size×size 品牌色半透明高亮 + 描边；镜像开启时叠加对称 ghost 块。
+ * size×size 品牌色半透明高亮 + 描边；四向对称（MirrorMode）开启时叠加 1~3 个 ghost 块。
  * hoverPx/hoverPy = -1 时隐藏；hitTestBehavior 透明不挡笔触与悬停。
  */
+
+import { MirrorMode } from '../core/Raster';
 
 const BRAND_FALLBACK = 0xFF818CF8;
 const FILL_ALPHA = 0.3;
@@ -18,8 +20,8 @@ export struct BrushCursorOverlay {
   @Require @Param zoom: number;
   @Require @Param docW: number;
   @Require @Param docH: number;
-  /** 对称 ghost：镜像开启时同时高亮 (docW-1-px, py) 块。 */
-  @Require @Param mirrorX: boolean;
+  /** 四向对称 ghost：按模式叠加 (w-1-px,py)/(px,h-1-py)/(w-1-px,h-1-py) 块。 */
+  @Require @Param mirrorMode: MirrorMode;
 
   private ctx: CanvasRenderingContext2D =
     new CanvasRenderingContext2D(new RenderingContextSettings(true));
@@ -36,7 +38,7 @@ export struct BrushCursorOverlay {
       })
   }
 
-  @Monitor('hoverPx', 'hoverPy', 'brushSize', 'zoom', 'mirrorX')
+  @Monitor('hoverPx', 'hoverPy', 'brushSize', 'zoom', 'mirrorMode')
   onCursorChange(): void {
     this.draw();
   }
@@ -55,8 +57,14 @@ export struct BrushCursorOverlay {
     ctx.strokeStyle = color;
     ctx.lineWidth = STROKE_WIDTH;
     this.drawBlock(this.hoverPx, this.hoverPy);
-    if (this.mirrorX) {
+    if (this.mirrorMode === MirrorMode.X || this.mirrorMode === MirrorMode.XY) {
       this.drawBlock(this.docW - 1 - this.hoverPx, this.hoverPy);
+    }
+    if (this.mirrorMode === MirrorMode.Y || this.mirrorMode === MirrorMode.XY) {
+      this.drawBlock(this.hoverPx, this.docH - 1 - this.hoverPy);
+    }
+    if (this.mirrorMode === MirrorMode.XY) {
+      this.drawBlock(this.docW - 1 - this.hoverPx, this.docH - 1 - this.hoverPy);
     }
   }
 

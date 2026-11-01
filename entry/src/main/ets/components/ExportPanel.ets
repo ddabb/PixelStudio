@@ -3,6 +3,7 @@
  * PNG：当前帧合成 + 1/2/4/8× 最近邻放大（透明保留）。
  * GIF：全帧合成 + 循环（帧率沿用帧面板）+ 量化模式（中位切分 / 按当前调色板直映射）+
  *       透明背景（GCE 透明索引）+ Floyd-Steinberg 抖动。
+ * 精灵图集（1.1.0-D）：全帧水平拼接单 PNG（透明保留）+ 坐标 JSON 分享（utd TEXT，引擎直读）。
  * 拼豆图纸：品牌（Perler/Hama）量化 + 材料清单（色号/名称/数量/包数）+ 29×29 分板 +
  *       十字绣式符号图纸 PNG（§13.5 计数实测）。
  * 保存相册 = SaveButton 安全组件免授权（photoAccessHelper.createAsset，§4.1）；
@@ -14,6 +15,7 @@ import { fileIo as fs, fileUri } from '@kit.CoreFileKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { systemShare } from '@kit.ShareKit';
 import { uniformTypeDescriptor as utd } from '@kit.ArkData';
+import { util } from '@kit.ArkTS';
 import { PixelDoc } from '../core/PixelDoc';
 import { EditorSession } from '../viewmodel/EditorSession';
 import { PaletteStore } from '../viewmodel/PaletteStore';
@@ -25,6 +27,7 @@ import { BeadQuantize } from '../core/BeadQuantize';
 import { BeadStats, BeadManifest, BeadEntry } from '../core/BeadStats';
 import { ChartRender, BeadChartOptions } from '../core/ChartRender';
 import { Palettes, BeadBrand, BeadColor } from '../core/Palettes';
+import { SheetRender } from '../core/SheetRender';
 
 const SCALES: number[] = [1, 2, 4, 8];
 
@@ -41,7 +44,7 @@ export struct ExportPanel {
   @Require @Param session: EditorSession;
   @Require @Param paletteStore: PaletteStore;
   @Require @Param projectName: string;
-  /** 格式：0=PNG 1=GIF 2=拼豆图纸。 */
+  /** 格式：0=PNG 1=GIF 2=拼豆图纸 3=精灵图集。 */
   @Local fmt: number = 0;
   /** PNG 整数放大倍率（1/2/4/8；避开组件内置 scale 属性名）。 */
   @Local pngScale: number = 1;
@@ -115,6 +118,10 @@ export struct ExportPanel {
     }
     if (this.fmt === 1) {
       return Math.ceil(w * h * this.doc.frameCount * 0.45) + 2048;
+    }
+    if (this.fmt === 3) {
+      // 精灵图集：条图 raw×0.35（PNG 启发式同 fmt 0）。
+      return Math.ceil(w * h * this.doc.frameCount * 4 * 0.35);
     }
     // 拼豆图纸：cellSize 16 → 每像素位 16² 图纸像素 ×4B ×0.1 + 符号图例表头。
     return Math.ceil(w * h * 256 * 4 * 0.1) + 2048;
@@ -215,6 +222,16 @@ export struct ExportPanel {
       p.fileName = `${base}.gif`;
       return p;
     }
+    if (this.fmt === 3) {
+      // 精灵图集：全帧水平拼接 PNG（透明保留，1.1.0-D）。
+      const strip = SheetRender.renderStrip(this.doc);
+      const ab = await this.packPng(strip.buf, strip.w, strip.h);
+      const p = new ExportPayload();
+      p.bytes = new Uint8Array(ab);
+      p.ext = 'png';
+      p.fileName = `${base}_sheet.png`;
+      return p;
+    }
     // 拼豆图纸：品牌量化 + 十字绣式渲染（cellSize 16px，§6.7）
     const brand = this.brand();
     const frame = new Uint8Array(this.doc.w * this.doc.h * 4);
@@ -262,6 +279,24 @@ export struct ExportPanel {
 
   /** 系统分享（沙箱缓存文件 + file:// uri + utd 精确类型；面板失败仅提示）。 */
   private async sharePayload(p: ExportPayload): Promise<void> {
+    await this.shareBytes(p.bytes, p.fileName,
+      utd.getUniformDataTypeByFilenameExtension(`.${p.ext}`, utd.UniformDataType.IMAGE));
+  }
+
+  /** 分享图集坐标 JSON（utd TEXT，引擎/下游工具直接解析，1.1.0-D）。 */
+  private shareAtlasJson(): void {
+    if (this.busy) {
+      return;
+    }
+    const base = this.fileSafe(this.projectName);
+    const json = SheetRender.atlasJson(this.doc, `${base}_sheet.png`, this.session.fps);
+    const bytes = new util.TextEncoder().encodeInto(json);
+    this.shareBytes(bytes, `${base}_sheet.json`,
+      utd.getUniformDataTypeByFilenameExtension('.json', utd.UniformDataType.TEXT));
+  }
+
+  /** 通用分享：字节写沙箱缓存 + ShareController；失败仅提示不抛出。 */
+  private async shareBytes(bytes: Uint8Array, fileName: string, utdId: string): Promise<void> {
     const ctx = AppCtx.uiContext;
     if (ctx === undefined) {
       this.toast($r('app.string.export_share_failed_toast'));
@@ -272,22 +307,21 @@ export struct ExportPanel {
       if (!fs.accessSync(dir)) {
         fs.mkdirSync(dir, true);
       }
-      const path = `${dir}/${p.fileName}`;
+      const path = `${dir}/${fileName}`;
       const file = fs.openSync(path,
         fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
       try {
-        const n = fs.writeSync(file.fd, p.bytes.buffer, { length: p.bytes.length });
-        if (n !== p.bytes.length) {
+        const n = fs.writeSync(file.fd, bytes.buffer, { length: bytes.length });
+        if (n !== bytes.length) {
           throw new Error('short write');
         }
       } finally {
         fs.closeSync(file);
       }
-      const utdId = utd.getUniformDataTypeByFilenameExtension(`.${p.ext}`, utd.UniformDataType.IMAGE);
       const record: systemShare.SharedRecord = {
         utd: utdId,
         uri: fileUri.getUriFromPath(path),
-        title: p.fileName
+        title: fileName
       };
       const data = new systemShare.SharedData(record);
       const controller = new systemShare.ShareController(data);
@@ -479,13 +513,53 @@ export struct ExportPanel {
     .alignItems(HorizontalAlign.Start)
   }
 
+  /** 精灵图集参数区（1.1.0-D）：说明 + 条图尺寸 + 估计大小 + 坐标 JSON 分享。 */
+  @Builder
+  sheetSection() {
+    Column({ space: 10 }) {
+      Text($r('app.string.export_sheet_desc'))
+        .fontSize(13)
+        .fontColor($r('app.color.secondary_text'))
+      Text(`${this.doc.w}×${this.doc.h} · ${this.doc.frameCount}f · ${this.session.fps}FPS`)
+        .fontSize(13)
+        .fontColor($r('app.color.primary_text'))
+      Text($r('app.string.export_output_size', this.doc.w * this.doc.frameCount, this.doc.h))
+        .fontSize(13)
+        .fontColor($r('app.color.secondary_text'))
+      Text($r('app.string.export_estimated_size', this.fmtBytes(this.estimateBytes())))
+        .fontSize(13)
+        .fontColor($r('app.color.secondary_text'))
+      Button($r('app.string.export_sheet_json'))
+        .type(ButtonType.Normal)
+        .borderRadius(10)
+        .height(34)
+        .width('100%')
+        .fontSize(13)
+        .enabled(!this.busy)
+        .backgroundColor($r('app.color.card_background'))
+        .fontColor($r('app.color.primary_text'))
+        .onClick(() => {
+          this.shareAtlasJson();
+        })
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Column({ space: 10 }) {
-      // 格式切换
-      Row({ space: 8 }) {
-        this.fmtButton(0, $r('app.string.export_format_png'))
-        this.fmtButton(1, $r('app.string.export_format_gif'))
-        this.fmtButton(2, $r('app.string.export_format_chart'))
+      // 格式切换（2×2：四格式标签在窄栏/平板右列均不挤压截断）
+      Column({ space: 8 }) {
+        Row({ space: 8 }) {
+          this.fmtButton(0, $r('app.string.export_format_png'))
+          this.fmtButton(1, $r('app.string.export_format_gif'))
+        }
+        .width('100%')
+        Row({ space: 8 }) {
+          this.fmtButton(2, $r('app.string.export_format_chart'))
+          this.fmtButton(3, $r('app.string.export_format_sheet'))
+        }
+        .width('100%')
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 10 })
@@ -569,8 +643,10 @@ export struct ExportPanel {
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
-          } else {
+          } else if (this.fmt === 2) {
             this.beadSection()
+          } else {
+            this.sheetSection()
           }
         }
         .width('100%')

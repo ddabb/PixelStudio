@@ -98,7 +98,19 @@
     },
     {
       "name": "mirror_x",
-      "value": "Mirror X"
+      "value": "Mirror · X"
+    },
+    {
+      "name": "mirror_y",
+      "value": "Mirror · Y"
+    },
+    {
+      "name": "mirror_xy",
+      "value": "Mirror · XY"
+    },
+    {
+      "name": "mirror_off",
+      "value": "Mirror Off"
     },
     {
       "name": "clear_canvas",
@@ -123,6 +135,14 @@
     {
       "name": "tool_eyedropper",
       "value": "Pick"
+    },
+    {
+      "name": "tool_text",
+      "value": "Text"
+    },
+    {
+      "name": "tool_dither",
+      "value": "Dither"
     },
     {
       "name": "shape_filled",
@@ -155,6 +175,30 @@
     {
       "name": "tool_selection",
       "value": "Select"
+    },
+    {
+      "name": "text_dialog_title",
+      "value": "Insert Text"
+    },
+    {
+      "name": "text_hint",
+      "value": "Enter text (A-Z 0-9 & punctuation)"
+    },
+    {
+      "name": "text_scale",
+      "value": "Size"
+    },
+    {
+      "name": "text_insert",
+      "value": "Insert"
+    },
+    {
+      "name": "text_width_px",
+      "value": "Width %d px"
+    },
+    {
+      "name": "text_overflow",
+      "value": "Out-of-bounds part will be clipped"
     },
     {
       "name": "tab_canvas",
@@ -395,6 +439,18 @@
     {
       "name": "export_dither",
       "value": "Dither"
+    },
+    {
+      "name": "export_format_sheet",
+      "value": "Sprite Sheet"
+    },
+    {
+      "name": "export_sheet_desc",
+      "value": "All frames joined horizontally into one PNG (transparency kept), with an atlas JSON for game engines"
+    },
+    {
+      "name": "export_sheet_json",
+      "value": "Share Atlas JSON"
     },
     {
       "name": "export_share",

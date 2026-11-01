@@ -1,10 +1,11 @@
 /**
  * viewmodel/EditorSession.ets — 编辑器会话状态（@ObservedV2，V2 状态树根）。
- * 工具 / 颜色 / 笔宽 / 镜像 / 形状实心 / 网格模式 / 视口变换（缩放平移）/
+ * 工具 / 颜色 / 笔宽 / 四向对称 / 抖动填充 / 形状实心 / 网格模式 / 视口变换（缩放平移）/
  * 撤销标志 / 脏标记；tick 供画布外操作（清空/撤销/重做等）触发重渲染。
  */
 
 import { UndoStack } from '../core/UndoStack';
+import { MirrorMode } from '../core/Raster';
 
 export enum Tool {
   Pencil = 0,
@@ -14,7 +15,8 @@ export enum Tool {
   Rect = 4,
   Ellipse = 5,
   Eyedropper = 6,
-  Selection = 7
+  Selection = 7,
+  Text = 8
 }
 
 /** 选区矩形（像素坐标；x/y 为左上角，w/h ≥ 1）。 */
@@ -43,7 +45,10 @@ export class EditorSession {
   @Trace currentTool: Tool = Tool.Pencil;
   @Trace color: number = 0xFF000000;
   @Trace brushSize: number = 1;
-  @Trace mirrorX: boolean = false;
+  /** 四向对称（1.1.0）：关/X/Y/XY 循环切换。 */
+  @Trace mirrorMode: MirrorMode = MirrorMode.None;
+  /** 抖动填充（1.1.0）：Fill 工具棋盘格着色开关。 */
+  @Trace ditherFill: boolean = false;
   @Trace shapeFilled: boolean = false;
   @Trace gridMode: GridMode = GridMode.Auto;
   /** 视口变换：zoom 为浮点（捏合连续），fitZoom 初始化为整倍数；pan 单位 vp。 */
