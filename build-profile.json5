@@ -1,11 +1,41 @@
 {
-  // M0 脚手架（2026-10-19 立项）：签名材料待各应用在 AGC 生成后，
-  // 经 DevEco「项目结构 > 签名配置」绑定，或回填本文件 signingConfigs
-  // （参照 PocketToolbox 1.4.x 实践：release/debug 双配置 + SHA256withECDSA）。
+  // 签名材料已于 AGC 生成（2026-10-25），参照 PocketToolbox 1.4.x 实践回填：
+  // release/debug 双配置 + SHA256withECDSA；.p12/.cer 为开发者级共享材料，
+  // .p7b 为本应用（com.ddabb.pixelstudio）专属 profile。
+  // 口令为 DevEco 本机加密串（同机同文件与 PocketToolbox 等价）。
   "app": {
+    "signingConfigs": [
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "D:/keystore/toolbox.p12",
+          "storePassword": "0000001891DD17D359390814ACEBC3D3E069AA719C4E88F62D29AF0A054A300F353CEF40CD63423F",
+          "keyAlias": "toolbox",
+          "keyPassword": "0000001863BB2BA579ADF145AB1E2F018CFC3778C5E769F4D570F640AE501B5BC51F3F8ECD303C45",
+          "signAlg": "SHA256withECDSA",
+          "profile": "D:/keystore/像素画工作室发布Release.p7b",
+          "certpath": "D:/keystore/发布证书.cer"
+        }
+      },
+      {
+        "name": "debug",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "D:/keystore/debug.p12",
+          "storePassword": "00000018007A20EFD49DDEC56936DE8AABA286A8D8486707873CF73D51606707B791B8FA60A21B11",
+          "keyAlias": "debug",
+          "keyPassword": "0000001813D20CB87A92A23A5B8A96CB4F5576C3F72835F3B0330C41EB69B99577D53A4044B5FE74",
+          "signAlg": "SHA256withECDSA",
+          "profile": "D:/keystore/像素画工作室Debug.p7b",
+          "certpath": "D:/keystore/调试证书.cer"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
+        "signingConfig": "debug",
         "targetSdkVersion": "6.0.0(20)",
         "compatibleSdkVersion": "6.0.0(20)",
         "runtimeOS": "HarmonyOS",
@@ -18,6 +48,7 @@
       },
       {
         "name": "release",
+        "signingConfig": "release",
         "targetSdkVersion": "6.0.0(20)",
         "compatibleSdkVersion": "6.0.0(20)",
         "runtimeOS": "HarmonyOS",
