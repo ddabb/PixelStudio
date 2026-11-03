@@ -1,6 +1,7 @@
 /**
  * components/ExportPanel.ets — 导出面板（M4 批，开发计划 §5.1 第 4 Tab / §6.5 / §6.7）。
- * PNG：当前帧合成 + 1/2/4/8× 最近邻放大（透明保留）。
+ * PNG：当前帧合成 + 1/2/4/8× 最近邻放大（透明保留）+ 可选网格线开关
+ *       （块边界 1px 自适应对比灰，透明像素跳过，仅 ≥2× 可开）。
  * GIF：全帧合成 + 循环（帧率沿用帧面板）+ 量化模式（中位切分 / 按当前调色板直映射）+
  *       透明背景（GCE 透明索引）+ Floyd-Steinberg 抖动。
  * 精灵图集（1.1.0-D）：全帧水平拼接单 PNG（透明保留）+ 坐标 JSON 分享（utd TEXT，引擎直读）。
@@ -48,6 +49,8 @@ export struct ExportPanel {
   @Local fmt: number = 0;
   /** PNG 整数放大倍率（1/2/4/8；避开组件内置 scale 属性名）。 */
   @Local pngScale: number = 1;
+  /** PNG 网格线开关：块边界 1px 对比灰；1× 无块可分，开关置灰且导出不画。 */
+  @Local pngGrid: boolean = false;
   /** GIF 量化模式：true=中位切分自动；false=按当前调色板直映射。 */
   @Local gifAuto: boolean = true;
   @Local gifTransparent: boolean = true;
@@ -186,10 +189,14 @@ export struct ExportPanel {
   private async exportBytes(): Promise<ExportPayload | undefined> {
     const base = this.fileSafe(this.projectName);
     if (this.fmt === 0) {
-      // PNG：当前帧 + 整数倍放大
+      // PNG：当前帧 + 整数倍放大（+ 可选网格线）
       const frame = new Uint8Array(this.doc.w * this.doc.h * 4);
       Compose.composeFrame(this.doc, this.doc.activeFrame, frame);
       const scaled = Resample.scaleNearest(frame, this.doc.w, this.doc.h, this.pngScale);
+      if (this.pngGrid && this.pngScale >= 2) {
+        Resample.drawGridLines(scaled, this.doc.w * this.pngScale, this.doc.h * this.pngScale,
+          this.pngScale);
+      }
       const ab = await this.packPng(scaled, this.doc.w * this.pngScale, this.doc.h * this.pngScale);
       const p = new ExportPayload();
       p.bytes = new Uint8Array(ab);
@@ -394,13 +401,15 @@ export struct ExportPanel {
   }
 
   @Builder
-  toggleRow(label: ResourceStr, isOn: boolean, onToggle: (v: boolean) => void) {
+  toggleRow(label: ResourceStr, isOn: boolean, onToggle: (v: boolean) => void,
+    enabled: boolean = true) {
     Row({ space: 8 }) {
       Text(label)
         .fontSize(13)
-        .fontColor($r('app.color.primary_text'))
+        .fontColor(enabled ? $r('app.color.primary_text') : $r('app.color.hint_text'))
       Blank()
       Toggle({ type: ToggleType.Switch, isOn: isOn })
+        .enabled(enabled)
         .onChange((v: boolean) => {
           onToggle(v);
         })
@@ -585,6 +594,11 @@ export struct ExportPanel {
               Text($r('app.string.export_estimated_size', this.fmtBytes(this.estimateBytes())))
                 .fontSize(13)
                 .fontColor($r('app.color.secondary_text'))
+              // 网格线开关：1× 无块可分置灰（导出侧同样以 ≥2× 为门槛）
+              this.toggleRow($r('app.string.export_grid'), this.pngGrid,
+                (v: boolean): void => {
+                  this.pngGrid = v;
+                }, this.pngScale >= 2)
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)

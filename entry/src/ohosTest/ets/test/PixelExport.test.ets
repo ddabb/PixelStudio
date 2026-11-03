@@ -544,6 +544,127 @@ export default function pixelExportTest() {
       expect(threw).assertTrue();
     });
 
+    // ---------- Resample 网格线（PNG 导出带网格开关） ----------
+    it('Resample_grid_lines_light_on_dark', 0, () => {
+      // 2×1 源（红|蓝）2× 放大 → 4×2：块间竖线 x=1；红底暗（亮度 76）→ 浅色线 0xC0；
+      // 最右列 x=3 不画（画面保持出血）；h=2 无内行线。
+      const src: Uint8Array = new Uint8Array(8);
+      src.set([255, 0, 0, 255], 0);
+      src.set([0, 0, 255, 255], 4);
+      const out: Uint8Array = Resample.scaleNearest(src, 2, 1, 2);
+      Resample.drawGridLines(out, 4, 2, 2);
+      const at = (x: number, y: number): number => (y * 4 + x) * 4;
+      // 红块首列保留
+      expect(out[at(0, 0)]).assertEqual(255);
+      expect(out[at(0, 0) + 1]).assertEqual(0);
+      // 块界 x=1 两行均落浅色线（不透明覆盖）
+      expect(out[at(1, 0)]).assertEqual(0xC0);
+      expect(out[at(1, 1)]).assertEqual(0xC0);
+      expect(out[at(1, 0) + 3]).assertEqual(255);
+      // 蓝块 x=2..3 保留
+      expect(out[at(2, 0) + 2]).assertEqual(255);
+      expect(out[at(3, 0) + 2]).assertEqual(255);
+      expect(out[at(3, 0)]).assertEqual(0);
+    });
+
+    it('Resample_grid_lines_dark_on_light_and_border', 0, () => {
+      // 2×2 白底 3× 放大 → 6×6：内部十字线 x=2/y=2（白底亮 → 深色线 0x40）；
+      // 最外圈右/下缘（x=5/y=5）不画。
+      const src: Uint8Array = new Uint8Array(2 * 2 * 4);
+      src.fill(255);
+      const out: Uint8Array = Resample.scaleNearest(src, 2, 2, 3);
+      Resample.drawGridLines(out, 6, 6, 3);
+      const at = (x: number, y: number): number => (y * 6 + x) * 4;
+      expect(out[at(2, 0)]).assertEqual(0x40);
+      expect(out[at(0, 2)]).assertEqual(0x40);
+      // 十字交点 (2,2) 同为深色线
+      expect(out[at(2, 2)]).assertEqual(0x40);
+      expect(out[at(2, 2) + 3]).assertEqual(255);
+      // 最外圈不画：右缘/下缘/右下角保持白
+      expect(out[at(5, 0)]).assertEqual(255);
+      expect(out[at(0, 5)]).assertEqual(255);
+      expect(out[at(5, 5)]).assertEqual(255);
+      // 块中心 (1,1) 保持白
+      expect(out[at(1, 1)]).assertEqual(255);
+    });
+
+    it('Resample_grid_lines_transparent_skip', 0, () => {
+      // 6×2、k=2：块 [0,1] 红、[2,3] 全透明、[4,5] 红 → 线位 x=1/x=3；
+      // 透明像素跳过（alpha 0 保留，透明不丢）。
+      const buf: Uint8Array = new Uint8Array(6 * 2 * 4);
+      const opaqueCols: number[] = [0, 1, 4, 5];
+      for (let c = 0; c < opaqueCols.length; c++) {
+        for (let y = 0; y < 2; y++) {
+          const i: number = (y * 6 + opaqueCols[c]) * 4;
+          buf[i] = 255;
+          buf[i + 3] = 255;
+        }
+      }
+      Resample.drawGridLines(buf, 6, 2, 2);
+      const at = (x: number, y: number): number => (y * 6 + x) * 4;
+      // 红底线位 x=1 → 浅色线
+      expect(buf[at(1, 0)]).assertEqual(0xC0);
+      // 透明线位 x=3 → 跳过
+      expect(buf[at(3, 0) + 3]).assertEqual(0);
+      expect(buf[at(3, 1) + 3]).assertEqual(0);
+      // 非线位红块保留
+      expect(buf[at(4, 0)]).assertEqual(255);
+      expect(buf[at(0, 1)]).assertEqual(255);
+    });
+
+    it('Resample_grid_lines_invalid_args_throw', 0, () => {
+      let threw = false;
+      try {
+        // k<2：1× 每像素皆边界，无意义
+        Resample.drawGridLines(new Uint8Array(4), 1, 1, 1);
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).assertTrue();
+      threw = false;
+      try {
+        // 缓冲长度与 w*h*4 不符
+        Resample.drawGridLines(new Uint8Array(4), 2, 1, 2);
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).assertTrue();
+      threw = false;
+      try {
+        // 非整数块边长
+        Resample.drawGridLines(new Uint8Array(16), 2, 2, 1.5);
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).assertTrue();
+    });
+
+    it('Resample_grid_lines_deterministic', 0, () => {
+      // 8×8 随机 RGB + 半透明/全透明混合：两次运行字节级一致
+      const a: Uint8Array = new Uint8Array(8 * 8 * 4);
+      const b: Uint8Array = new Uint8Array(8 * 8 * 4);
+      let seed = 11;
+      for (let p = 0; p < 64; p++) {
+        seed = lcgNext(seed);
+        const r: number = (seed >> 16) & 0xFF;
+        const g: number = (seed >> 8) & 0xFF;
+        const bl: number = seed & 0xFF;
+        const al: number = (seed & 1) === 0 ? 0 : 255;
+        const off: number = p * 4;
+        a[off] = r;
+        a[off + 1] = g;
+        a[off + 2] = bl;
+        a[off + 3] = al;
+        b[off] = r;
+        b[off + 1] = g;
+        b[off + 2] = bl;
+        b[off + 3] = al;
+      }
+      Resample.drawGridLines(a, 8, 8, 2);
+      Resample.drawGridLines(b, 8, 8, 2);
+      expect(bytesEqual(a, b)).assertTrue();
+    });
+
     // ---------- BeadStats ----------
     it('BeadStats_manifest_counts', 0, () => {
       // 6 格：3×T1 + 1×T2 + 2 空位

@@ -417,6 +417,10 @@
       "value": "放大"
     },
     {
+      "name": "export_grid",
+      "value": "网格线"
+    },
+    {
       "name": "export_output_size",
       "value": "输出尺寸 %1$d×%2$d"
     },
