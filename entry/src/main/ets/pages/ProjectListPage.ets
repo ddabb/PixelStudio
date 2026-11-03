@@ -1,6 +1,6 @@
 /**
  * pages/ProjectListPage.ets — 工程列表首页（开发计划 §5.3/§6.4，M4 批）。
- * 列表（缩略图/名称/尺寸/帧数/层/更新时间/损坏灰显）+ 新建（名称 + 16-128 尺寸档）+
+ * 列表（缩略图/名称/尺寸/帧数/层/更新时间/损坏灰显）+ 新建（名称 + 16-256 尺寸档）+
  * 打开 / 复制 / 重命名 / 二次点击删除；杀进程恢复 = 打开即读最近存档（自动保存 ≤30s）。
  * 新建/重命名/关于为遮罩对话框；空态与加载态兜底；时间倒序排列。
  */
@@ -10,8 +10,9 @@ import { EditorLaunch } from '../viewmodel/EditorLaunch';
 import { ProjectStore, ProjectRecord, THUMB_MAX } from '../viewmodel/ProjectStore';
 import { BackupDialog } from '../components/BackupDialog';
 
-/** 新建尺寸档（开发计划 §4.1：16/24/32/48/64/96/128）。 */
-const NEW_SIZES: number[] = [16, 24, 32, 48, 64, 96, 128];
+/** 新建尺寸档（开发计划 §4.1：16/24/32/48/64/96/128；1.2 大画布扩展 192/256，
+ *  搭配 CanvasView 局部渲染 + 撤销栈深自适应，见开发计划 §6.5 P1 手段）。 */
+const NEW_SIZES: number[] = [16, 24, 32, 48, 64, 96, 128, 192, 256];
 
 /** 列表行 UI 记录：工程元数据 + 已解码缩略图。 */
 class UIProject {
@@ -117,7 +118,7 @@ struct ProjectListPage {
     this.getUIContext().getRouter().pushUrl({ url: 'pages/EditorPage' });
   }
 
-  /** 新建对话框尺寸档行（7 档换行排布，窄屏不溢出）。 */
+  /** 新建对话框尺寸档行（9 档换行排布，窄屏不溢出）。 */
   @Builder
   sizeButtons() {
     Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {

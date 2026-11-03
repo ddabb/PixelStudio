@@ -66,7 +66,7 @@ struct EditorPage {
     if (EditorLaunch.fresh) {
       // 新建：EditorLaunch 携带名称与尺寸，立即进入。
       this.projectId = ProjectStore.newId();
-      this.doc = new PixelDoc(EditorLaunch.newWidth, EditorLaunch.newHeight);
+      this.adoptDoc(new PixelDoc(EditorLaunch.newWidth, EditorLaunch.newHeight));
       this.ready = true;
       this.startAutosave();
       return;
@@ -76,7 +76,7 @@ struct EditorPage {
     this.projectStore.loadDoc(id).then((pxs: PxsDoc | undefined) => {
       if (pxs !== undefined) {
         this.projectId = id;
-        this.doc = ProjectStore.toDoc(pxs);
+        this.adoptDoc(ProjectStore.toDoc(pxs));
         this.projectName = pxs.meta.name;
         this.session.fps = Math.max(1, Math.min(30, pxs.meta.fps));
         if (pxs.meta.paletteId.length > 0) {
@@ -84,7 +84,7 @@ struct EditorPage {
         }
       } else {
         this.projectId = ProjectStore.newId();
-        this.doc = new PixelDoc(64, 64);
+        this.adoptDoc(new PixelDoc(64, 64));
         this.getUIContext().getPromptAction()
           .showToast({ message: $r('app.string.project_load_failed') });
       }
@@ -92,7 +92,7 @@ struct EditorPage {
       this.startAutosave();
     }).catch(() => {
       this.projectId = ProjectStore.newId();
-      this.doc = new PixelDoc(64, 64);
+      this.adoptDoc(new PixelDoc(64, 64));
       this.ready = true;
       this.startAutosave();
     });
@@ -103,6 +103,12 @@ struct EditorPage {
     this.stopAutosave();
     this.saveNow();
     this.paletteStore.saveNow();
+  }
+
+  /** 文档就位 + 撤销栈深自适应（1.2 大画布）：按单 cel 字节预算收缩，≤128² 仍 100。 */
+  private adoptDoc(doc: PixelDoc): void {
+    this.doc = doc;
+    this.session.undoStack.setCapacity(UndoStack.capacityFor(doc.w * doc.h * 4));
   }
 
   /** 系统返回：文本框打开先收框；否则先落盘再退出（返回键/侧滑统一入口）。 */

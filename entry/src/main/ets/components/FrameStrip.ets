@@ -2,7 +2,8 @@
  * components/FrameStrip.ets — 帧面板（M3，开发计划 §4.1 帧 / §5.3 帧面板）。
  * 横向帧缩略条（合成预览）+ 当前帧描边高亮 + ＋/复制/删除/左右移 +
  * 播放 ▶（切回画布循环预览，任意触屏即停）+ FPS 滑杆（1-30 默认 8）+ 洋葱皮 Toggle。
- * 缩略图 = 逐帧 Compose 合成（tick / strokeCount 变化时整体重建）。
+ * 缩略图 = 逐帧 Compose 合成（tick / strokeCount 变化时整体重建；播放中跳过——
+ * 仅推进预览帧、内容不变，大画布下 N 帧全量合成代价高）。
  */
 
 import { image } from '@kit.ImageKit';
@@ -31,6 +32,10 @@ export struct FrameStrip {
 
   @Monitor('session.tick', 'session.strokeCount')
   onDocChange(): void {
+    // 播放中帧内容不变（编辑必先停播），跳过整体重建；停播后的首个 tick 会补齐。
+    if (this.session.playing) {
+      return;
+    }
     this.rebuild();
   }
 

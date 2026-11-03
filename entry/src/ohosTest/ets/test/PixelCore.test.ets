@@ -16,6 +16,8 @@ import { GestureTracker, GestureSink } from '../../../main/ets/core/GestureTrack
 import { ColorUtil } from '../../../main/ets/core/ColorUtil';
 import { Palettes, BeadColor } from '../../../main/ets/core/Palettes';
 import { BeadQuantize } from '../../../main/ets/core/BeadQuantize';
+import { EditorSession } from '../../../main/ets/viewmodel/EditorSession';
+import { PartialRenderer } from '../../../main/ets/components/PartialRenderer';
 
 class RecordingSink implements GestureSink {
   log: string[] = [];
@@ -1023,6 +1025,162 @@ export default function pixelCoreTest() {
       expect(base[1]).assertEqual(0);
       expect(base[2]).assertEqual(0);
       expect(base[3]).assertEqual(255);
+    });
+
+    // ---------- Compose 区域通道 + UndoStack 自适应容量（1.2 大画布） ----------
+    it('Compose_composeRegion_equals_full_frame', 0, () => {
+      const doc = new PixelDoc(8, 6);
+      doc.addLayer('Layer 2');
+      doc.cells[0][0].setPx(2, 1, RED);
+      doc.cells[0][0].setPx(5, 4, GREEN);
+      doc.layers[1].opacity = 50;
+      doc.cells[0][1].setPx(3, 2, BLUE);
+      doc.cells[0][1].setPx(2, 1, RED);
+      const full = new Uint8Array(8 * 6 * 4);
+      Compose.composeFrame(doc, 0, full);
+      // 内部矩形区域合成与整帧在区域内逐字节一致（含 50% 半透明混合与同点叠层）。
+      const region = new Uint8Array(8 * 6 * 4);
+      Compose.composeRegion(doc, 0, 1, 1, 6, 4, region);
+      for (let y = 1; y < 5; y++) {
+        for (let x = 1; x < 7; x++) {
+          const i = (y * 8 + x) * 4;
+          expect(region[i]).assertEqual(full[i]);
+          expect(region[i + 1]).assertEqual(full[i + 1]);
+          expect(region[i + 2]).assertEqual(full[i + 2]);
+          expect(region[i + 3]).assertEqual(full[i + 3]);
+        }
+      }
+    });
+
+    it('Compose_composeRegion_outside_untouched', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      doc.cells[0][0].setPx(0, 0, RED);
+      const out = new Uint8Array(4 * 4 * 4);
+      out.fill(7);
+      Compose.composeRegion(doc, 0, 1, 1, 2, 2, out);
+      // 区域外保持哨兵值；区域内空画布合成 = 清零。
+      expect(out[0]).assertEqual(7);
+      expect(out[(3 * 4 + 3) * 4]).assertEqual(7);
+      expect(out[(1 * 4 + 1) * 4]).assertEqual(0);
+      expect(out[(1 * 4 + 1) * 4 + 3]).assertEqual(0);
+    });
+
+    it('Compose_blendOverRegion_equals_full', 0, () => {
+      // 2×2：base 左上不透明红、其余透明；overlay 全不透明蓝；区域=整幅 → 与全帧版一致。
+      const full = new Uint8Array(2 * 2 * 4);
+      const region = new Uint8Array(2 * 2 * 4);
+      const overlay = new Uint8Array(2 * 2 * 4);
+      for (let i = 0; i < 4; i++) {
+        overlay[i * 4] = 0;
+        overlay[i * 4 + 1] = 0;
+        overlay[i * 4 + 2] = 255;
+        overlay[i * 4 + 3] = 255;
+      }
+      full[0] = 255;
+      full[3] = 255;
+      region[0] = 255;
+      region[3] = 255;
+      Compose.blendOver(full, overlay, 30);
+      Compose.blendOverRegion(region, overlay, 30, 2, 0, 0, 2, 2);
+      for (let i = 0; i < full.length; i++) {
+        expect(region[i]).assertEqual(full[i]);
+      }
+    });
+
+    it('UndoStack_capacityFor_budget', 0, () => {
+      expect(UndoStack.capacityFor(16 * 16 * 4)).assertEqual(100);
+      expect(UndoStack.capacityFor(128 * 128 * 4)).assertEqual(100);
+      expect(UndoStack.capacityFor(192 * 192 * 4)).assertEqual(56);
+      expect(UndoStack.capacityFor(256 * 256 * 4)).assertEqual(32);
+    });
+
+    it('UndoStack_setCapacity_trims_oldest', 0, () => {
+      const stack = new UndoStack(10);
+      const cell = new Uint8Array(4);
+      for (let i = 0; i < 5; i++) {
+        const before = cell.slice();
+        cell[0] = i + 1;
+        const e = UndoStack.entryIfChanged(cell, before);
+        if (e !== undefined) {
+          stack.push(e);
+        }
+      }
+      // 收缩到 3：最旧 2 条淘汰，undo 依序 4→3→2 后见底。
+      stack.setCapacity(3);
+      stack.undo();
+      expect(cell[0]).assertEqual(4);
+      stack.undo();
+      expect(cell[0]).assertEqual(3);
+      stack.undo();
+      expect(cell[0]).assertEqual(2);
+      expect(stack.canUndo()).assertFalse();
+    });
+
+    // ---------- PartialRenderer：笔触局部渲染（1.2 大画布） ----------
+    it('PartialRenderer_dirty_region_and_skip', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      const composeBuf = new Uint8Array(4 * 4 * 4);
+      const pickBuf = new Uint8Array(4 * 4 * 4);
+      const pr = new PartialRenderer(doc, session, composeBuf,
+        new Uint8Array(4 * 4 * 4), pickBuf);
+      pr.beginStroke(doc.cells[0][0].data);
+      pr.afterFullRender();
+      expect(pr.canPartial()).assertTrue();
+      // 画一笔 (2,2) 红：脏区域重合成，composeBuf/pickBuf 同步该像素。
+      doc.cells[0][0].setPx(2, 2, RED);
+      expect(pr.renderPartial()).assertTrue();
+      const i = (2 * 4 + 2) * 4;
+      expect(composeBuf[i]).assertEqual(255);
+      expect(composeBuf[i + 1]).assertEqual(0);
+      expect(composeBuf[i + 2]).assertEqual(0);
+      expect(composeBuf[i + 3]).assertEqual(255);
+      expect(pickBuf[i + 3]).assertEqual(255);
+      // 无第二次修改：零成本跳过。
+      expect(pr.renderPartial()).assertFalse();
+    });
+
+    it('PartialRenderer_sig_change_disables_partial', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      const session = new EditorSession();
+      const pr = new PartialRenderer(doc, session, new Uint8Array(4 * 4 * 4),
+        new Uint8Array(4 * 4 * 4), new Uint8Array(4 * 4 * 4));
+      pr.beginStroke(doc.cells[0][0].data);
+      pr.afterFullRender();
+      expect(pr.canPartial()).assertTrue();
+      // 场景签名变化（隐藏图层）：局部通道关闭，调用方回退整帧渲染。
+      doc.layers[0].visible = false;
+      expect(pr.canPartial()).assertFalse();
+      doc.layers[0].visible = true;
+      expect(pr.canPartial()).assertTrue();
+      // 无基线（未落笔/已收笔）同样不可局部。
+      pr.endStroke();
+      expect(pr.canPartial()).assertFalse();
+    });
+
+    it('PartialRenderer_pick_buf_excludes_onion', 0, () => {
+      const doc = new PixelDoc(4, 4);
+      doc.addFrame();
+      doc.cells[0][0].setPx(1, 1, RED);
+      doc.activeFrame = 1;
+      const session = new EditorSession();
+      session.onionSkin = true;
+      const composeBuf = new Uint8Array(4 * 4 * 4);
+      const onionBuf = new Uint8Array(4 * 4 * 4);
+      const pickBuf = new Uint8Array(4 * 4 * 4);
+      // 模拟整帧渲染时填充的上一帧洋葱缓冲。
+      Compose.composeFrame(doc, 0, onionBuf);
+      const pr = new PartialRenderer(doc, session, composeBuf, onionBuf, pickBuf);
+      pr.beginStroke(doc.cells[1][0].data);
+      pr.afterFullRender();
+      // 当前帧画 (1,1) 蓝：composeBuf 混入 30% 红幽灵，pickBuf 保持 blend 前纯合成。
+      doc.cells[1][0].setPx(1, 1, BLUE);
+      expect(pr.renderPartial()).assertTrue();
+      const i = (1 * 4 + 1) * 4;
+      expect(pickBuf[i]).assertEqual(0);
+      expect(pickBuf[i + 2]).assertEqual(255);
+      expect(pickBuf[i + 3]).assertEqual(255);
+      expect(composeBuf[i] > 0).assertTrue();
     });
   });
 }

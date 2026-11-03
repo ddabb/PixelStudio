@@ -4,7 +4,14 @@
  * 结构类（DocEntry）：图层增删/排序/元数据/选区内容操作闭包；内容缓冲对象永不替换，
  * 仅原位 .set()，故闭包捕获的引用在撤销/重做后始终有效。
  * 栈深默认 100，LRU 淘汰最旧；新操作入栈截断 redo 尾巴。
+ * 1.2 大画布：capacityFor 按单 cel 字节预算自适应栈深（≤128² 仍 100；256²→32），
+ * 防大画布快照对（before+after 双拷贝）挤爆内存（开发计划 §6.5）。
  */
+
+/** 撤销快照字节预算（CelEntry before+after 双拷贝合计）。 */
+const UNDO_SNAPSHOT_BUDGET = 16 * 1024 * 1024;
+/** 自适应栈深下限：极端大画布仍保留可用撤销步数。 */
+const UNDO_MIN_CAPACITY = 24;
 
 /** 撤销条目基类：apply 后由调用方负责重新合成 + tick。 */
 export abstract class BaseEntry {
@@ -56,12 +63,30 @@ export class DocEntry extends BaseEntry {
 }
 
 export class UndoStack {
-  private readonly capacity: number;
+  private capacity: number;
   private undoList: BaseEntry[] = [];
   private redoList: BaseEntry[] = [];
 
   constructor(capacity: number = 100) {
     this.capacity = capacity > 0 ? capacity : 1;
+  }
+
+  /** 按单 cel 字节数自适应栈深：≤128² 维持 100；192²→56；256²→32（预算 16MB）。 */
+  static capacityFor(cellBytes: number): number {
+    const cap = Math.floor(UNDO_SNAPSHOT_BUDGET / (cellBytes * 2));
+    return Math.max(UNDO_MIN_CAPACITY, Math.min(100, cap));
+  }
+
+  /** 运行期调整容量（工程打开后按画布尺寸收缩）；收缩时淘汰最旧条目。 */
+  setCapacity(capacity: number): void {
+    const cap = capacity > 0 ? capacity : 1;
+    if (cap === this.capacity) {
+      return;
+    }
+    this.capacity = cap;
+    while (this.undoList.length > cap) {
+      this.undoList.shift();
+    }
   }
 
   /** after 取当前 cellData 快照；before/after 相同则返回 undefined（无变更不入栈）。 */

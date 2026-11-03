@@ -14,7 +14,7 @@
 import { PixelBuffer } from './PixelBuffer';
 
 const PXS_VERSION = 1;
-/** 单 cel 像素上限（防损坏文件超大分配；应用实际上限 128×128 = 16K）。 */
+/** 单 cel 像素上限（防损坏文件超大分配；应用实际上限 256×256 = 64K，1.2 大画布）。 */
 const PXS_MAX_CELL_PIXELS = 1 << 24;
 /** 帧数 × 层数上限（防损坏文件超大乘积）。 */
 const PXS_MAX_CELLS = 65536;

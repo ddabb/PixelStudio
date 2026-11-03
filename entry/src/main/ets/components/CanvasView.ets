@@ -7,6 +7,9 @@
  * 坐标空间：外层画布区组件相对 vp；origin = (area − doc·zoom)/2 + pan。
  * 1.1.0：悬停像素光标（BrushCursorOverlay，鼠标/2in1）+ 触感反馈（Haptics）+
  * 洋葱皮吸色改读 blend 前 pickBuf 副本（修复幽灵色污染）。
+ * 1.2 大画布（开发计划 §6.5 P1 手段）：笔触移动走局部渲染通道——diff 活动 cel vs
+ * 基线得脏矩形，仅重合成该区域（含洋葱皮），无变化零成本跳过；切帧/图层/播放/
+ * 撤销等场景变化仍整帧渲染（场景签名比对兜底）。
  */
 
 import { image } from '@kit.ImageKit';
@@ -20,6 +23,7 @@ import { UndoStack } from '../core/UndoStack';
 import { GestureTracker, GestureSink } from '../core/GestureTracker';
 import { EditorSession, Tool, GridMode, SelRect } from '../viewmodel/EditorSession';
 import { Haptics } from '../viewmodel/Haptics';
+import { PartialRenderer } from './PartialRenderer';
 import { GridOverlay } from './GridOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
 import { BrushCursorOverlay } from './BrushCursorOverlay';
@@ -59,6 +63,8 @@ export struct CanvasView {
   private areaH: number = 0;
   private fitted: boolean = false;
   private strokeBefore: Uint8Array | undefined = undefined;
+  /** 笔触局部渲染辅助（1.2 大画布）：基线 diff + 脏矩形区域重合成。 */
+  private partialRenderer: PartialRenderer | undefined = undefined;
   private anchorPx: number = 0;
   private anchorPy: number = 0;
   private lastPx: number = 0;
@@ -84,6 +90,8 @@ export struct CanvasView {
     this.composeBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
     this.onionBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
     this.pickBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
+    this.partialRenderer = new PartialRenderer(this.doc, this.session,
+      this.composeBuf, this.onionBuf, this.pickBuf);
     this.tracker = new GestureTracker(new CanvasSink(this));
     this.buildChecker();
     this.render();
@@ -98,7 +106,8 @@ export struct CanvasView {
     this.render();
   }
 
-  /** Move 事件渲染节流：合并到至多每帧一次；落笔/终笔走同步 render()。 */
+  /** Move 事件渲染节流：合并到至多每帧一次；笔触中走局部渲染，其余整帧；
+   *  落笔/终笔走同步 render()。 */
   private scheduleRender(): void {
     if (this.renderScheduled) {
       return;
@@ -108,12 +117,35 @@ export struct CanvasView {
     const delay = elapsed >= FRAME_MS ? 0 : FRAME_MS - elapsed;
     setTimeout(() => {
       this.renderScheduled = false;
-      this.render();
+      this.dispatchRender();
     }, delay);
   }
 
-  /** 整帧渲染（§6.2/§6.6）：实测对已挂载 Image 的 PixelMap 调 writeBufferToPixels
-   * 不会触发显示刷新，故每帧 createPixelMapSync 生成新对象驱动重绘。 */
+  /** 渲染分发：笔触中且场景签名未变 → 局部渲染（无变化零成本跳过）；否则整帧。 */
+  private dispatchRender(): void {
+    const p = this.partialRenderer;
+    if (p !== undefined && this.strokeBefore !== undefined && p.canPartial()) {
+      if (p.renderPartial()) {
+        this.rebuildPixelMap();
+      }
+      this.lastRenderAt = Date.now();
+      return;
+    }
+    this.render();
+  }
+
+  /** composeBuf → 新 PixelMap（实测 writeBufferToPixels 不触发已挂载 Image 刷新，
+   *  故每帧 createPixelMapSync 生成新对象驱动重绘，§6.2/§6.6）。 */
+  private rebuildPixelMap(): void {
+    const opts: image.InitializationOptions = {
+      editable: false,
+      pixelFormat: image.PixelMapFormat.RGBA_8888,
+      size: { width: this.doc.w, height: this.doc.h }
+    };
+    this.pixelMap = image.createPixelMapSync(this.composeBuf.buffer.slice(0), opts);
+  }
+
+  /** 整帧渲染（§6.2/§6.6）。 */
   private render(): void {
     const t0 = Date.now();
     this.lastRenderAt = t0;
@@ -126,12 +158,8 @@ export struct CanvasView {
       Compose.composeFrame(this.doc, this.doc.activeFrame - 1, this.onionBuf);
       Compose.blendOver(this.composeBuf, this.onionBuf, ONION_STRENGTH_PCT);
     }
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: this.doc.w, height: this.doc.h }
-    };
-    this.pixelMap = image.createPixelMapSync(this.composeBuf.buffer.slice(0), opts);
+    this.rebuildPixelMap();
+    this.partialRenderer?.afterFullRender();
     const dt = Date.now() - t0;
     if (dt > this.maxRenderMs) {
       this.maxRenderMs = dt;
@@ -348,6 +376,8 @@ export struct CanvasView {
     this.strokeVoid = !cell.inBounds(px, py);
     this.strokeChanged = false;
     this.strokeBefore = cell.data.slice();
+    // 笔触基线：形状/选区工具落笔不整帧渲染，从此快照出发做局部 diff。
+    this.partialRenderer?.beginStroke(cell.data);
     this.downSample = this.strokeVoid ? 0 : this.readComposed(px, py);
     hilog.info(DOMAIN, TAG,
       'strokeBegin v=(%{public}d,%{public}d) px=(%{public}d,%{public}d) zoom=%{public}s tool=%{public}d void=%{public}d',
@@ -496,6 +526,7 @@ export struct CanvasView {
 
   private resetStrokeState(): void {
     this.strokeBefore = undefined;
+    this.partialRenderer?.endStroke();
     this.strokeChanged = false;
     this.strokeVoid = false;
     this.maxRenderMs = 0;
