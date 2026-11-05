@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-make_templates.py — 分类模板库生成器（长期任务第一批，章程 docs/模板库长期任务章程.md）。
+make_templates.py — 分类模板库生成器（长期任务，章程 docs/模板库长期任务章程.md）。
 
-单一事实源：本脚本登记全部模板（12 新原创 + 3 既有示例），运行后发射三类产物：
-  1. entry/src/main/resources/rawfile/templates/{id}.pxs + {id}.thumb（12 个新模板；
+单一事实源：本脚本登记全部模板（第一批 12 + 第二批 12 新原创 + 3 既有示例），
+运行后发射三类产物：
+  1. entry/src/main/resources/rawfile/templates/{id}.pxs + {id}.thumb（新模板；
      3 个示例沿用 rawfile 平铺既有文件，不复制）；
   2. entry/src/main/ets/viewmodel/TemplateDefs.ets —— 生成的 typed 清单（ArkTS 侧
      编译期类型安全，规避 JSON.parse 运行时类型断言）；
@@ -15,6 +16,7 @@ make_templates.py — 分类模板库生成器（长期任务第一批，章程 
 用法：py -3 scripts/make_templates.py（在仓库根运行；输出确定性，重跑字节一致）。
 """
 import json
+import math
 import os
 import sys
 
@@ -707,6 +709,570 @@ def build_star():
     }
 
 
+# ====================================================================
+# 第二批（1.4.0）：12 个新原创模板，每类 2 个
+# ====================================================================
+
+# ---------- tpl_rabbit 白玉兔（animals，16×16，1 帧） ----------
+
+def rabbit():
+    c = Canvas(16, 16)
+    # 双长耳（白外粉内，耳尖圆）
+    c.rect(4, 0, 5, 1, W)
+    c.rect(4, 2, 5, 4, W)
+    c.rect(4, 2, 4, 4, PK)
+    c.rect(10, 0, 11, 1, W)
+    c.rect(10, 2, 11, 4, W)
+    c.rect(11, 2, 11, 4, PK)
+    # 头身（白蛋形坐姿）
+    c.rect(4, 5, 11, 5, W)
+    c.rect(3, 6, 12, 11, W)
+    c.rect(4, 12, 11, 13, W)
+    # 眼（黑）+ 眉间
+    c.set(5, 8, BLK)
+    c.set(10, 8, BLK)
+    # 鼻与嘴（粉）
+    c.set(7, 10, PK)
+    c.set(8, 10, PK)
+    c.set(6, 11, PK)
+    c.set(9, 11, PK)
+    # 腮红
+    c.set(3, 10, PK)
+    c.set(12, 10, PK)
+    # 前脚
+    c.rect(5, 14, 6, 14, W)
+    c.rect(9, 14, 10, 14, W)
+    # 草地点缀
+    c.set(0, 15, GN)
+    c.set(2, 15, GN)
+    c.set(13, 15, GN)
+    c.set(15, 15, GN)
+    return c
+
+
+def build_rabbit():
+    return {
+        'id': 'tpl_rabbit', 'name': '白玉兔',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('白兔', 1)], 'cells': [[rabbit()]],
+    }
+
+
+# ---------- tpl_penguin 小企鹅（animals，16×16，1 帧） ----------
+
+def penguin():
+    c = Canvas(16, 16)
+    # 体外轮廓（黑）
+    c.rect(5, 1, 10, 1, BLK)
+    c.rect(4, 2, 11, 3, BLK)
+    c.rect(3, 4, 12, 11, BLK)
+    c.rect(4, 12, 11, 12, BLK)
+    c.rect(5, 13, 10, 13, BLK)
+    # 白脸白腹（连成一片）
+    c.rect(5, 2, 10, 2, W)
+    c.rect(5, 3, 10, 4, W)
+    c.rect(4, 5, 11, 5, W)
+    c.rect(4, 6, 11, 10, W)
+    c.rect(5, 11, 10, 12, W)
+    # 眼（黑，白脸上）
+    c.set(6, 4, BLK)
+    c.set(9, 4, BLK)
+    # 喙（橙，脸下缘中央）
+    c.rect(7, 5, 8, 6, O)
+    # 翅膀（黑侧鳍）
+    c.rect(3, 6, 3, 10, BLK)
+    c.rect(12, 6, 12, 10, BLK)
+    c.set(2, 7, BLK)
+    c.set(13, 7, BLK)
+    # 脚（橙）
+    c.rect(5, 14, 7, 14, O)
+    c.rect(8, 14, 10, 14, O)
+    # 冰晶与雪点
+    c.set(0, 12, BL)
+    c.set(15, 10, BL)
+    c.set(1, 2, W)
+    return c
+
+
+def build_penguin():
+    return {
+        'id': 'tpl_penguin', 'name': '小企鹅',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('企鹅', 1)], 'cells': [[penguin()]],
+    }
+
+
+# ---------- tpl_volcano 喷发火山（scenery，48×48，2 层 1 帧） ----------
+
+def volcano_sky():
+    c = Canvas(48, 48)
+    # 夜空渐变（暗蓝 → 暗紫）
+    c.lerp_band([(0.0, K), (0.7, B), (1.0, K)])
+    # 星
+    for x, y in [(4, 3), (9, 7), (14, 2), (20, 5), (27, 3), (33, 6),
+                 (40, 2), (45, 5), (6, 12), (42, 11), (18, 10)]:
+        c.set(x, y, W)
+    # 满月（黄 + 陨坑）
+    c.circle(39, 9, 3, Y)
+    c.set(38, 8, PE)
+    c.set(40, 10, PE)
+    return c
+
+
+def volcano_fg():
+    c = Canvas(48, 48)
+    # 上升烟柱（暗灰）
+    c.rect(23, 1, 25, 5, DGR)
+    c.set(21, 3, DGR)
+    c.set(27, 4, DGR)
+    # 喷发冠（红橙蘑菇团 + 亮黄芯）
+    c.circle(24, 6, 4, RD)
+    c.circle(19, 9, 3, RD)
+    c.circle(29, 9, 3, RD)
+    c.circle(24, 10, 5, O)
+    c.circle(24, 12, 3, Y)
+    # 火花四溅
+    for x, y in [(15, 4), (33, 5), (12, 10), (36, 12), (18, 2), (30, 2)]:
+        c.set(x, y, Y)
+    # 火山锥（深灰梯形：口宽 8 → 底宽 30）
+    for y in range(12, 44):
+        t = (y - 12) / 31
+        half = 4 + round(t * 11)
+        c.rect(24 - half, y, 24 + half, y, DGR)
+    # 火山口缘（暗）
+    c.rect(19, 12, 29, 13, BLK)
+    # 熔岩流（红橙分叉沿锥面而下）
+    c.line(24, 13, 22, 20, RD)
+    c.line(22, 20, 20, 28, O)
+    c.line(20, 28, 19, 36, RD)
+    c.line(24, 13, 27, 19, RD)
+    c.line(27, 19, 28, 27, O)
+    c.rect(24, 13, 24, 16, Y)
+    # 山脚熔岩池（红面 + 亮入水斑）
+    c.rect(8, 44, 39, 47, BR)
+    c.rect(8, 44, 39, 44, RD)
+    c.set(19, 45, O)
+    c.set(20, 45, Y)
+    c.set(28, 45, O)
+    return c
+
+
+def build_volcano():
+    return {
+        'id': 'tpl_volcano', 'name': '喷发火山',
+        'w': 48, 'h': 48, 'fps': 8, 'palette': 'pico8',
+        'layers': [('夜空', 1), ('火山', 2)],
+        'cells': [[volcano_sky(), volcano_fg()]],
+    }
+
+
+# ---------- tpl_igloo 极光雪屋（scenery，32×32，1 帧） ----------
+
+def igloo():
+    c = Canvas(32, 32)
+    # 夜空渐变（暗蓝 → 暗紫）
+    c.lerp_band([(0.0, K), (1.0, B)])
+    # 星
+    for x, y in [(3, 2), (8, 5), (14, 1), (22, 3), (28, 6), (26, 1), (18, 6)]:
+        c.set(x, y, W)
+    # 极光带（绿主带 + 粉缘，正弦波动竖排）
+    for x in range(2, 30):
+        y0 = 4 + int(2 * math.sin(x * 0.55))
+        c.set(x, y0, W)
+        for dy in range(1, 4):
+            c.set(x, y0 + dy, GN)
+        c.set(x, y0 + 4, PK)
+    # 冰屋（浅灰圆拱 + 深灰砖缝）
+    c.circle(10, 22, 7, GR)
+    c.rect(3, 22, 17, 22, GR)
+    c.line(4, 18, 16, 18, DGR)
+    for bx in (6, 10, 14):
+        c.set(bx, 16, DGR)
+    c.set(5, 20, DGR)
+    c.set(15, 20, DGR)
+    # 雪地（重铺盖掉冰屋下半）+ 雪线
+    c.rect(0, 22, 31, 31, W)
+    c.rect(0, 22, 31, 22, GR)
+    for x in range(0, 32, 4):
+        c.set(x, 26, GR)
+        c.set(x + 1, 29, GR)
+    # 门洞（暗蓝内腔 + 门口暖光雪反）
+    c.rect(8, 16, 12, 22, K)
+    c.set(8, 15, K)
+    c.set(12, 15, K)
+    c.set(7, 23, Y)
+    c.set(8, 23, PE)
+    c.set(13, 23, PE)
+    # 小雪人（白两球 + 橙鼻黑眼扣）
+    c.circle(25, 26, 2, W)
+    c.circle(25, 22, 1, W)
+    c.set(24, 22, BLK)
+    c.set(26, 22, O)
+    c.set(25, 25, BLK)
+    c.set(25, 27, BLK)
+    return c
+
+
+def build_igloo():
+    return {
+        'id': 'tpl_igloo', 'name': '极光雪屋',
+        'w': 32, 'h': 32, 'fps': 8, 'palette': 'pico8',
+        'layers': [('极光雪原', 1)], 'cells': [[igloo()]],
+    }
+
+
+# ---------- tpl_ramen 拉面碗（food，24×24，1 帧） ----------
+
+def ramen():
+    c = Canvas(24, 24)
+    # 汤面（碗口上方可见部分）
+    c.rect(3, 4, 20, 7, PE)
+    # 面条（黄波浪沉在汤里）
+    c.line(4, 6, 8, 5, Y)
+    c.line(8, 5, 12, 6, Y)
+    c.line(12, 6, 16, 5, Y)
+    c.line(16, 5, 19, 6, Y)
+    # 溏心蛋（白蛋白 + 橙黄蛋心）
+    c.rect(4, 4, 8, 6, W)
+    c.rect(6, 5, 7, 5, O)
+    # 鱼板（白圆 + 粉螺旋纹）
+    c.circle(17, 5, 2, W)
+    c.set(17, 4, PK)
+    c.set(16, 5, PK)
+    c.set(18, 6, PK)
+    # 撒葱花（绿点）
+    c.set(10, 4, GN)
+    c.set(12, 7, GN)
+    c.set(14, 4, DGN)
+    c.set(9, 7, GN)
+    # 筷子（棕，斜搭右上）
+    c.line(13, 1, 22, 7, BR)
+    c.line(15, 1, 22, 9, BR)
+    # 热气（浅灰缕）
+    c.set(6, 1, GR)
+    c.set(9, 2, GR)
+    c.set(12, 1, GR)
+    # 碗沿（白）
+    c.rect(2, 8, 21, 9, W)
+    # 碗身（红，上宽下收）+ 左缘粉高光
+    c.rect(3, 10, 20, 16, RD)
+    c.rect(4, 17, 19, 18, RD)
+    c.rect(3, 10, 3, 16, PK)
+    # 碗身白纹带（波浪三点）
+    c.rect(5, 13, 8, 13, W)
+    c.rect(10, 15, 13, 15, W)
+    c.rect(15, 13, 18, 13, W)
+    # 碗足（暗紫）
+    c.rect(7, 19, 16, 19, B)
+    c.rect(8, 20, 15, 20, B)
+    return c
+
+
+def build_ramen():
+    return {
+        'id': 'tpl_ramen', 'name': '拉面碗',
+        'w': 24, 'h': 24, 'fps': 8, 'palette': 'pico8',
+        'layers': [('拉面', 1)], 'cells': [[ramen()]],
+    }
+
+
+# ---------- tpl_icecream 双色甜筒（food，16×16，1 帧） ----------
+
+def icecream():
+    c = Canvas(16, 16)
+    # 甜筒（棕锥体）
+    c.rect(4, 9, 11, 9, BR)
+    c.rect(5, 10, 10, 10, BR)
+    c.rect(5, 11, 10, 11, BR)
+    c.rect(6, 12, 9, 12, BR)
+    c.rect(7, 13, 8, 13, BR)
+    c.set(7, 14, BR)
+    c.set(8, 14, BR)
+    # 华夫格纹（深灰斜点）
+    c.set(5, 9, DGR)
+    c.set(7, 9, DGR)
+    c.set(10, 9, DGR)
+    c.set(6, 11, DGR)
+    c.set(9, 11, DGR)
+    c.set(8, 13, DGR)
+    # 粉球主体（草莓味）
+    c.circle(8, 5, 4, PK)
+    # 白漩涡纹（香草旋纹）
+    c.rect(5, 3, 6, 4, W)
+    c.set(4, 5, W)
+    c.set(5, 6, W)
+    c.rect(9, 6, 10, 7, W)
+    c.set(10, 5, W)
+    c.set(11, 4, W)
+    # 顶尖（粉 + 白高光）
+    c.set(8, 1, PK)
+    c.set(7, 2, PK)
+    c.set(9, 2, PK)
+    c.set(8, 2, W)
+    return c
+
+
+def build_icecream():
+    return {
+        'id': 'tpl_icecream', 'name': '双色甜筒',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('甜筒', 1)], 'cells': [[icecream()]],
+    }
+
+
+# ---------- tpl_ghost 小幽灵（creatures，16×16，2 帧漂浮） ----------
+
+def ghost(frame):
+    c = Canvas(16, 16)
+    dy = 1 if frame == 1 else 0
+    # 头（圆 + 肩补齐）
+    c.circle(7, 4 + dy, 3, W)
+    c.rect(5, 4 + dy, 11, 4 + dy, W)
+    c.set(11, 5 + dy, W)
+    # 身体（8 宽矩形）
+    c.rect(4, 5 + dy, 11, 12 + dy, W)
+    if frame == 0:
+        # 波浪下摆：齿 x4-5 / x8-9，谷 x6-7 / x10-11
+        c.rect(4, 13, 5, 13, W)
+        c.rect(8, 13, 9, 13, W)
+        c.set(4, 14, W)
+        c.set(9, 14, W)
+    else:
+        # 平摆（下压贴地感）
+        c.rect(4, 13 + dy, 11, 13 + dy, W)
+    # 眼（黑瞳 + 白高光；帧间眼神微移）
+    ex = 1 if frame == 1 else 0
+    c.rect(5, 6 + dy, 6, 8 + dy, BLK)
+    c.rect(9, 6 + dy, 10, 8 + dy, BLK)
+    c.set(5 + ex, 6 + dy, W)
+    c.set(9 + ex, 6 + dy, W)
+    # 腮红 + 小口
+    c.set(4, 9 + dy, PK)
+    c.set(11, 9 + dy, PK)
+    c.set(7, 10 + dy, BLK)
+    c.set(8, 10 + dy, BLK)
+    return c
+
+
+def build_ghost():
+    cells = []
+    for f in range(2):
+        cells.append([ghost(f)])
+    return {
+        'id': 'tpl_ghost', 'name': '小幽灵',
+        'w': 16, 'h': 16, 'fps': 6, 'palette': 'pico8',
+        'layers': [('幽灵', 1)], 'cells': cells,
+    }
+
+
+# ---------- tpl_mushroom 蘑菇小人（creatures，16×16，1 帧） ----------
+
+def mushroom():
+    c = Canvas(16, 16)
+    # 菌盖（红半圆伞 + 白点）
+    c.circle(7, 6, 6, RD, ymax=7)
+    c.rect(1, 6, 13, 7, RD)
+    c.set(4, 3, W)
+    c.set(5, 3, W)
+    c.set(4, 4, W)
+    c.set(9, 3, W)
+    c.set(10, 4, W)
+    c.set(7, 2, W)
+    c.set(2, 6, W)
+    c.set(12, 6, W)
+    # 盖底缘（暗紫收边）
+    c.rect(1, 7, 13, 7, B)
+    # 茎身脸（米白）
+    c.rect(4, 8, 10, 13, W)
+    c.rect(5, 14, 9, 14, W)
+    # 眼 + 腮红 + 微笑
+    c.set(6, 10, BLK)
+    c.set(9, 10, BLK)
+    c.set(5, 11, PK)
+    c.set(10, 11, PK)
+    c.set(7, 12, BLK)
+    c.set(8, 12, BLK)
+    # 小侧手
+    c.set(3, 10, W)
+    c.set(3, 11, W)
+    c.set(11, 10, W)
+    c.set(11, 11, W)
+    return c
+
+
+def build_mushroom():
+    return {
+        'id': 'tpl_mushroom', 'name': '蘑菇小人',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('蘑菇', 1)], 'cells': [[mushroom()]],
+    }
+
+
+# ---------- tpl_sword 宝剑（items，16×16，1 帧） ----------
+
+def sword():
+    c = Canvas(16, 16)
+    # 剑尖 + 剑刃（银白 + 中脊阴影线）
+    c.set(7, 0, W)
+    c.set(8, 0, W)
+    c.rect(7, 1, 8, 1, W)
+    c.rect(6, 2, 9, 2, W)
+    c.rect(6, 3, 9, 8, W)
+    c.rect(7, 3, 7, 8, GR)
+    # 护手（金横条 + 端头圆饰 + 橙暗缘）
+    c.rect(3, 9, 12, 10, Y)
+    c.set(2, 9, Y)
+    c.set(2, 10, Y)
+    c.set(13, 9, Y)
+    c.set(13, 10, Y)
+    c.set(3, 9, O)
+    c.set(12, 10, O)
+    # 柄（棕缠绳 + 深灰缠纹）
+    c.rect(7, 11, 8, 13, BR)
+    c.set(7, 12, DGR)
+    c.set(8, 11, DGR)
+    c.set(8, 13, DGR)
+    # 柄头圆饰（金框 + 红宝石心）
+    c.rect(6, 14, 9, 15, Y)
+    c.set(6, 14, O)
+    c.set(9, 15, O)
+    c.set(7, 14, RD)
+    c.set(8, 15, RD)
+    return c
+
+
+def build_sword():
+    return {
+        'id': 'tpl_sword', 'name': '宝剑',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('宝剑', 1)], 'cells': [[sword()]],
+    }
+
+
+# ---------- tpl_lantern 纸提灯（items，16×16，2 帧烛光闪动） ----------
+
+def lantern(frame):
+    c = Canvas(16, 16)
+    # 吊环 + 顶盖
+    c.set(7, 0, DGR)
+    c.set(8, 0, DGR)
+    c.rect(5, 1, 10, 2, DGR)
+    # 灯身（帧 0 亮黄 / 帧 1 暗橙，烛光强弱）
+    body = Y if frame == 0 else O
+    c.rect(4, 3, 11, 11, body)
+    c.set(3, 5, body)
+    c.set(3, 9, body)
+    c.set(12, 5, body)
+    c.set(12, 9, body)
+    # 竖棱骨架（红）
+    c.rect(5, 3, 5, 11, RD)
+    c.rect(10, 3, 10, 11, RD)
+    # 上下收边（红）
+    c.rect(5, 3, 10, 3, RD)
+    c.rect(5, 11, 10, 11, RD)
+    # 腔心火苗（帧 0 双白芯 / 帧 1 单白芯）
+    if frame == 0:
+        c.set(7, 5, W)
+        c.set(8, 5, W)
+        c.set(7, 6, Y)
+        c.set(8, 6, Y)
+        c.set(7, 7, O)
+        c.set(8, 7, O)
+    else:
+        c.set(7, 5, W)
+        c.set(7, 6, Y)
+        c.set(8, 6, Y)
+        c.set(8, 7, O)
+    # 底盖（深灰）+ 黄流苏
+    c.rect(5, 12, 10, 13, DGR)
+    c.set(7, 14, Y)
+    c.set(8, 14, Y)
+    c.set(7, 15, Y)
+    c.set(8, 15, Y)
+    return c
+
+
+def build_lantern():
+    cells = []
+    for f in range(2):
+        cells.append([lantern(f)])
+    return {
+        'id': 'tpl_lantern', 'name': '纸提灯',
+        'w': 16, 'h': 16, 'fps': 6, 'palette': 'pico8',
+        'layers': [('提灯', 1)], 'cells': cells,
+    }
+
+
+# ---------- tpl_skull 骷髅头（glyphs，16×16，1 帧） ----------
+
+def skull():
+    c = Canvas(16, 16)
+    # 颅顶（白圆）+ 面部下颌（白）
+    c.circle(7, 6, 5, W)
+    c.rect(4, 10, 11, 12, W)
+    c.rect(5, 13, 10, 13, W)
+    c.set(7, 14, W)
+    c.set(8, 14, W)
+    # 眼窝（黑大双圆）
+    c.circle(5, 7, 2, BLK)
+    c.circle(10, 7, 2, BLK)
+    # 鼻洞（黑倒三角）
+    c.set(7, 10, BLK)
+    c.set(8, 10, BLK)
+    c.set(7, 11, BLK)
+    # 牙缝（深灰竖缝分齿）
+    c.set(6, 13, DGR)
+    c.set(9, 13, DGR)
+    # 颅侧阴影 + 顶高光
+    c.set(3, 9, GR)
+    c.set(12, 9, GR)
+    c.set(6, 2, GR)
+    c.set(7, 2, GR)
+    return c
+
+
+def build_skull():
+    return {
+        'id': 'tpl_skull', 'name': '骷髅头',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('骷髅', 1)], 'cells': [[skull()]],
+    }
+
+
+# ---------- tpl_moon 弯月（glyphs，16×16，1 帧） ----------
+
+def moon():
+    c = Canvas(16, 16)
+    # 弯月（外圆减去偏移咬圆，留下左下弯钩）
+    for y in range(16):
+        for x in range(16):
+            d1 = (x - 7) ** 2 + (y - 8) ** 2
+            d2 = (x - 11) ** 2 + (y - 5) ** 2
+            if d1 <= 30 and d2 > 27:
+                c.set(x, y, Y)
+    # 月面陨坑（肤橙暗斑）
+    c.set(5, 6, PE)
+    c.set(6, 6, PE)
+    c.set(4, 10, PE)
+    c.set(6, 11, PE)
+    # 环星（四芒白星 + 散点）
+    c.set(12, 3, W)
+    c.set(11, 4, W)
+    c.set(13, 4, W)
+    c.set(12, 5, W)
+    c.set(3, 2, W)
+    c.set(10, 13, W)
+    return c
+
+
+def build_moon():
+    return {
+        'id': 'tpl_moon', 'name': '弯月',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('弯月', 1)], 'cells': [[moon()]],
+    }
+
+
 # ---------- 登记表（分类序 → 注册序；desc 单行短句） ----------
 
 # 既有示例（file 指向 rawfile 平铺文件，不复制不重生成）。
@@ -728,7 +1294,14 @@ DEMOS = [
 # 新模板：build 函数产出工程 dict（name 取 nameZh）。
 NEW_BUILDS = [build_puppy, build_bird, build_forest, build_lake, build_cake,
               build_sushi, build_knight, build_dragon, build_chest, build_potion,
-              build_heart, build_star]
+              build_heart, build_star,
+              # 第二批（1.4.0）：每类 2 个
+              build_rabbit, build_penguin,
+              build_volcano, build_igloo,
+              build_ramen, build_icecream,
+              build_ghost, build_mushroom,
+              build_sword, build_lantern,
+              build_skull, build_moon]
 NEW_META = {
     'tpl_puppy': dict(cat='animals', nameEn='Shiba Puppy',
                       descZh='奶油胸的摇尾小柴犬',
@@ -766,6 +1339,43 @@ NEW_META = {
     'tpl_star': dict(cat='glyphs', nameEn='Sparkle Star',
                      descZh='四角闪亮像素星',
                      descEn='A four-pointed sparkle'),
+    # 第二批（1.4.0）
+    'tpl_rabbit': dict(cat='animals', nameEn='Snow Rabbit',
+                       descZh='竖着长耳朵的白兔',
+                       descEn='A white rabbit with tall ears'),
+    'tpl_penguin': dict(cat='animals', nameEn='Little Penguin',
+                        descZh='挺着白肚的小企鹅',
+                        descEn='A penguin with a white belly'),
+    'tpl_volcano': dict(cat='scenery', nameEn='Erupting Volcano',
+                        descZh='夜色中喷发的火山',
+                        descEn='A volcano blazing in the night'),
+    'tpl_igloo': dict(cat='scenery', nameEn='Aurora Igloo',
+                      descZh='极光下的小雪屋',
+                      descEn='An igloo under the aurora'),
+    'tpl_ramen': dict(cat='food', nameEn='Ramen Bowl',
+                      descZh='叉烧溏心蛋热汤拉面',
+                      descEn='Hot ramen with pork and egg'),
+    'tpl_icecream': dict(cat='food', nameEn='Swirl Cone',
+                         descZh='粉白漩涡冰淇淋甜筒',
+                         descEn='A pink-and-white swirl cone'),
+    'tpl_ghost': dict(cat='creatures', nameEn='Little Ghost',
+                      descZh='一沉一浮眨眼的小幽灵',
+                      descEn='A tiny ghost bobbing along'),
+    'tpl_mushroom': dict(cat='creatures', nameEn='Mushroom Folk',
+                         descZh='红帽白点的蘑菇小人',
+                         descEn='A red-capped mushroom fellow'),
+    'tpl_sword': dict(cat='items', nameEn='Treasure Sword',
+                      descZh='镶金柄嵌红石的宝剑',
+                      descEn='A gold-hilted sword with a ruby'),
+    'tpl_lantern': dict(cat='items', nameEn='Paper Lantern',
+                        descZh='烛光摇曳的圆纸提灯',
+                        descEn='A round lantern with a flickering flame'),
+    'tpl_skull': dict(cat='glyphs', nameEn='Pixel Skull',
+                      descZh='经典像素骷髅图标',
+                      descEn='A classic pixel skull icon'),
+    'tpl_moon': dict(cat='glyphs', nameEn='Crescent Moon',
+                     descZh='带陨坑的黄弯月与星',
+                     descEn='A cratered crescent with stars'),
 }
 
 
@@ -842,7 +1452,7 @@ def emit_defs_ets(entries):
         lines.append(f"  '{cat}',")
     lines.append('];')
     lines.append('')
-    lines.append(f"/** 全部模板（{len(entries)} 个 = 12 新原创 + 3 示例工程；分类序 → 注册序）。 */")
+    lines.append(f"/** 全部模板（{len(entries)} 个 = {len(NEW_BUILDS)} 新原创 + {len(DEMOS)} 示例工程；分类序 → 注册序）。 */")
     lines.append('export const TEMPLATE_DEFS: TemplateDef[] = [')
     for e in entries:
         lines.append('  {')
