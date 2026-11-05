@@ -83,28 +83,42 @@ export class ColorUtil {
     return ((0xFF << 24) | (ri << 16) | (gi << 8) | bi) >>> 0;
   }
 
-  /** 解析 "#RRGGBB" / "RRGGBB"（大小写不限）；非法输入返回 undefined。 */
+  /** 解析 "#RRGGBB"/"RRGGBB"（不透明）或 "#AARRGGBB"/"AARRGGBB"（含透明度，大小写不限）；非法输入返回 undefined。 */
   static parseHex(text: string): number | undefined {
     let t = text.trim();
     if (t.startsWith('#')) {
       t = t.substring(1);
     }
-    if (t.length !== 6) {
+    if (t.length !== 6 && t.length !== 8) {
       return undefined;
     }
-    const r = ColorUtil.hexPair(t, 0);
-    const g = ColorUtil.hexPair(t, 2);
-    const b = ColorUtil.hexPair(t, 4);
-    if (r < 0 || g < 0 || b < 0) {
+    const a = t.length === 8 ? ColorUtil.hexPair(t, 0) : 0xFF;
+    const off = t.length === 8 ? 2 : 0;
+    const r = ColorUtil.hexPair(t, off);
+    const g = ColorUtil.hexPair(t, off + 2);
+    const b = ColorUtil.hexPair(t, off + 4);
+    if (a < 0 || r < 0 || g < 0 || b < 0) {
       return undefined;
     }
-    return ((0xFF << 24) | (r << 16) | (g << 8) | b) >>> 0;
+    return ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
   }
 
-  /** 格式化为 "#RRGGBB"（大写）。 */
+  /** 格式化为 "#RRGGBB"（大写）；alpha ≠ 255 时输出 8 位 "#AARRGGBB"，保证往返不丢透明度。 */
   static toHex(argb: number): string {
-    const hex = (argb & 0xFFFFFF).toString(16).toUpperCase();
-    return '#'.concat('000000'.substring(hex.length)).concat(hex);
+    const rgb = ColorUtil.pad2((argb >>> 16) & 0xFF)
+      .concat(ColorUtil.pad2((argb >>> 8) & 0xFF))
+      .concat(ColorUtil.pad2(argb & 0xFF));
+    const a = (argb >>> 24) & 0xFF;
+    if (a === 0xFF) {
+      return '#'.concat(rgb);
+    }
+    return '#'.concat(ColorUtil.pad2(a)).concat(rgb);
+  }
+
+  /** 两位大写十六进制（0-255 → '00'..'FF'）。 */
+  private static pad2(v: number): string {
+    const h = v.toString(16).toUpperCase();
+    return h.length === 1 ? '0'.concat(h) : h;
   }
 
   private static hexPair(t: string, start: number): number {

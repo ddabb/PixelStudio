@@ -857,6 +857,8 @@ export default function pixelCoreTest() {
       expect(ColorUtil.parseHex('ff0000')).assertEqual(RED);
       expect(ColorUtil.parseHex('#00ff00')).assertEqual(GREEN);
       expect(ColorUtil.parseHex(' #FFFFFF ')).assertEqual(WHITE);
+      expect(ColorUtil.parseHex('#80FF0000')).assertEqual(0x80FF0000);
+      expect(ColorUtil.parseHex('80ff0000')).assertEqual(0x80FF0000);
     });
 
     it('ColorUtil_parseHex_invalid', 0, () => {
@@ -864,12 +866,25 @@ export default function pixelCoreTest() {
       expect(ColorUtil.parseHex('#GG0000')).assertUndefined();
       expect(ColorUtil.parseHex('')).assertUndefined();
       expect(ColorUtil.parseHex('#12345')).assertUndefined();
+      expect(ColorUtil.parseHex('#1234567')).assertUndefined();
+      expect(ColorUtil.parseHex('#GGFF0000')).assertUndefined();
     });
 
     it('ColorUtil_toHex_format', 0, () => {
       expect(ColorUtil.toHex(RED)).assertEqual('#FF0000');
       expect(ColorUtil.toHex(0xFF0A0B0C)).assertEqual('#0A0B0C');
       expect(ColorUtil.toHex(BLACK)).assertEqual('#000000');
+      expect(ColorUtil.toHex(0x80FF0000)).assertEqual('#80FF0000');
+      expect(ColorUtil.toHex(0x000A0B0C)).assertEqual('#000A0B0C');
+    });
+
+    it('ColorUtil_hex_alpha_roundtrip', 0, () => {
+      const half = 0x80FF0000;
+      const text = ColorUtil.toHex(half);
+      expect(text).assertEqual('#80FF0000');
+      expect(ColorUtil.parseHex(text)).assertEqual(half);
+      expect(ColorUtil.toHex(RED)).assertEqual('#FF0000');
+      expect(ColorUtil.parseHex(ColorUtil.toHex(RED))).assertEqual(RED);
     });
 
     // ---------- Palettes（M3） ----------

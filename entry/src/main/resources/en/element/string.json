@@ -369,10 +369,6 @@
       "value": "Bright"
     },
     {
-      "name": "palette_apply",
-      "value": "Apply"
-    },
-    {
       "name": "palette_name_pico8",
       "value": "PICO-8"
     },

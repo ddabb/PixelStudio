@@ -2,6 +2,9 @@
  * components/PalettePanel.ets — 调色板面板（M3，开发计划 §4.1 调色板 / §5.3）。
  * 预置（PICO-8/GB DMG/灰阶/CGA）+ 拼豆品牌色板 + 自定义调色板（新建/重命名/删除/
  * 添加/移除当前色）+ 当前色 + 最近使用 8 色 + HSB 取色器 + HEX 输入。
+ * 选色即时生效（修复「面板选色与画笔绘制不一致」）：HSB 滑条拖动实时预览、
+ * 松手/点击提交；HEX 输入合法（6/8 位）即提交——无独立「应用」步骤，
+ * 面板所见颜色 = session.color = 实际绘制颜色。
  * 内置调色板显示名经资源键 palette_name_{id} 本地化，缺键回退代码名。
  */
 
@@ -42,7 +45,10 @@ export struct PalettePanel {
     this.hue = hsb.h;
     this.sat = hsb.s;
     this.bri = hsb.b;
-    this.hexText = ColorUtil.toHex(this.session.color);
+    // hexText 已是该色的合法 6/8 位表示时不重写，避免打断输入中的光标/大小写。
+    if (ColorUtil.parseHex(this.hexText) !== this.session.color) {
+      this.hexText = ColorUtil.toHex(this.session.color);
+    }
   }
 
   private pickingColor(): number {
@@ -144,7 +150,7 @@ export struct PalettePanel {
 
   @Builder
   hsbSlider(label: ResourceStr, value: number, min: number, max: number,
-    onSlide: (v: number) => void) {
+    onSlide: (v: number, done: boolean) => void) {
     Row({ space: 8 }) {
       Text(label)
         .fontSize(12)
@@ -154,8 +160,9 @@ export struct PalettePanel {
         .layoutWeight(1)
         .trackColor($r('app.color.border_color'))
         .selectedColor($r('app.color.brand'))
-        .onChange((v: number) => {
-          onSlide(Math.round(v));
+        .onChange((v: number, mode: SliderChangeMode) => {
+          onSlide(Math.round(v),
+            mode === SliderChangeMode.End || mode === SliderChangeMode.Click);
         })
       Text(`${value}`)
         .fontSize(12)
@@ -352,39 +359,38 @@ export struct PalettePanel {
                 this.hexText = v;
                 const c = ColorUtil.parseHex(v);
                 if (c !== undefined) {
-                  const hsb = ColorUtil.toHsb(c);
-                  this.hue = hsb.h;
-                  this.sat = hsb.s;
-                  this.bri = hsb.b;
+                  // 合法即提交（含 8 位半透明），面板所见 = 画笔实际颜色。
+                  this.applyColor(c);
                 }
-              })
-            Button($r('app.string.palette_apply'))
-              .type(ButtonType.Normal)
-              .borderRadius(8)
-              .height(36)
-              .padding({ left: 12, right: 12 })
-              .fontSize(13)
-              .backgroundColor($r('app.color.brand'))
-              .fontColor($r('app.color.on_accent_text'))
-              .onClick(() => {
-                this.applyPicker();
               })
           }
           .width('100%')
           .padding({ left: 12, right: 12, top: 6 })
 
-          this.hsbSlider($r('app.string.palette_hue'), this.hue, 0, 360, (v: number): void => {
-            this.hue = v;
-            this.hexText = ColorUtil.toHex(this.pickingColor());
-          })
-          this.hsbSlider($r('app.string.palette_saturation'), this.sat, 0, 100, (v: number): void => {
-            this.sat = v;
-            this.hexText = ColorUtil.toHex(this.pickingColor());
-          })
-          this.hsbSlider($r('app.string.palette_brightness'), this.bri, 0, 100, (v: number): void => {
-            this.bri = v;
-            this.hexText = ColorUtil.toHex(this.pickingColor());
-          })
+          this.hsbSlider($r('app.string.palette_hue'), this.hue, 0, 360,
+            (v: number, done: boolean): void => {
+              this.hue = v;
+              this.hexText = ColorUtil.toHex(this.pickingColor());
+              if (done) {
+                this.applyPicker();
+              }
+            })
+          this.hsbSlider($r('app.string.palette_saturation'), this.sat, 0, 100,
+            (v: number, done: boolean): void => {
+              this.sat = v;
+              this.hexText = ColorUtil.toHex(this.pickingColor());
+              if (done) {
+                this.applyPicker();
+              }
+            })
+          this.hsbSlider($r('app.string.palette_brightness'), this.bri, 0, 100,
+            (v: number, done: boolean): void => {
+              this.bri = v;
+              this.hexText = ColorUtil.toHex(this.pickingColor());
+              if (done) {
+                this.applyPicker();
+              }
+            })
         }
         .width('100%')
         .padding({ bottom: 16 })

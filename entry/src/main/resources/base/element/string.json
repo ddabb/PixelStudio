@@ -369,10 +369,6 @@
       "value": "明度"
     },
     {
-      "name": "palette_apply",
-      "value": "应用"
-    },
-    {
       "name": "palette_name_pico8",
       "value": "PICO-8"
     },
