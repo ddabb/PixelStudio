@@ -39,6 +39,31 @@ class ExportPayload {
   fileName: string = '';
 }
 
+/** 开关行子组件：替代多参数按值 @Builder（参数变化不刷新致网格开关冻结），
+ *  V2 @Param/@Event 响应式传参，enabled/isOn 变化实时刷新。 */
+@ComponentV2
+struct ToggleRow {
+  @Require @Param label: ResourceStr;
+  @Param isOn: boolean = false;
+  @Param toggleEnabled: boolean = true;
+  @Event onToggle: (v: boolean) => void = (_v: boolean) => {};
+
+  build() {
+    Row({ space: 8 }) {
+      Text(this.label)
+        .fontSize(13)
+        .fontColor(this.toggleEnabled ? $r('app.color.primary_text') : $r('app.color.hint_text'))
+      Blank()
+      Toggle({ type: ToggleType.Switch, isOn: this.isOn })
+        .enabled(this.toggleEnabled)
+        .onChange((v: boolean) => {
+          this.onToggle(v);
+        })
+    }
+    .width('100%')
+  }
+}
+
 @ComponentV2
 export struct ExportPanel {
   @Require @Param doc: PixelDoc;
@@ -401,23 +426,6 @@ export struct ExportPanel {
   }
 
   @Builder
-  toggleRow(label: ResourceStr, isOn: boolean, onToggle: (v: boolean) => void,
-    enabled: boolean = true) {
-    Row({ space: 8 }) {
-      Text(label)
-        .fontSize(13)
-        .fontColor(enabled ? $r('app.color.primary_text') : $r('app.color.hint_text'))
-      Blank()
-      Toggle({ type: ToggleType.Switch, isOn: isOn })
-        .enabled(enabled)
-        .onChange((v: boolean) => {
-          onToggle(v);
-        })
-    }
-    .width('100%')
-  }
-
-  @Builder
   brandButton(id: string, label: ResourceStr) {
     Button(label)
       .type(ButtonType.Normal)
@@ -595,10 +603,14 @@ export struct ExportPanel {
                 .fontSize(13)
                 .fontColor($r('app.color.secondary_text'))
               // 网格线开关：1× 无块可分置灰（导出侧同样以 ≥2× 为门槛）
-              this.toggleRow($r('app.string.export_grid'), this.pngGrid,
-                (v: boolean): void => {
+              ToggleRow({
+                label: $r('app.string.export_grid'),
+                isOn: this.pngGrid,
+                toggleEnabled: this.pngScale >= 2,
+                onToggle: (v: boolean): void => {
                   this.pngGrid = v;
-                }, this.pngScale >= 2)
+                }
+              })
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
@@ -646,14 +658,20 @@ export struct ExportPanel {
               Text($r('app.string.export_estimated_size', this.fmtBytes(this.estimateBytes())))
                 .fontSize(13)
                 .fontColor($r('app.color.secondary_text'))
-              this.toggleRow($r('app.string.export_transparent'), this.gifTransparent,
-                (v: boolean): void => {
+              ToggleRow({
+                label: $r('app.string.export_transparent'),
+                isOn: this.gifTransparent,
+                onToggle: (v: boolean): void => {
                   this.gifTransparent = v;
-                })
-              this.toggleRow($r('app.string.export_dither'), this.gifDither,
-                (v: boolean): void => {
+                }
+              })
+              ToggleRow({
+                label: $r('app.string.export_dither'),
+                isOn: this.gifDither,
+                onToggle: (v: boolean): void => {
                   this.gifDither = v;
-                })
+                }
+              })
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
