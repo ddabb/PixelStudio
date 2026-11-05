@@ -42,7 +42,7 @@
     },
     {
       "name": "version_value",
-      "value": "v1.2.1"
+      "value": "v1.3.0"
     },
     {
       "name": "mod_tools",
@@ -639,6 +639,50 @@
     {
       "name": "backup_open_fail",
       "value": "Could not open or save the file, please try again"
+    },
+    {
+      "name": "tpl_gallery_title",
+      "value": "Templates"
+    },
+    {
+      "name": "tpl_cat_all",
+      "value": "All"
+    },
+    {
+      "name": "tpl_cat_animals",
+      "value": "Animals"
+    },
+    {
+      "name": "tpl_cat_scenery",
+      "value": "Scenery"
+    },
+    {
+      "name": "tpl_cat_food",
+      "value": "Food"
+    },
+    {
+      "name": "tpl_cat_creatures",
+      "value": "Creatures"
+    },
+    {
+      "name": "tpl_cat_items",
+      "value": "Items"
+    },
+    {
+      "name": "tpl_cat_glyphs",
+      "value": "Glyphs"
+    },
+    {
+      "name": "tpl_use",
+      "value": "Use Template"
+    },
+    {
+      "name": "tpl_use_failed",
+      "value": "Failed to use the template, please try again"
+    },
+    {
+      "name": "tpl_spec",
+      "value": "%d×%d · %d frames · %d FPS"
     }
   ]
 }

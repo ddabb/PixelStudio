@@ -15,6 +15,7 @@ import { PixelBuffer } from '../core/PixelBuffer';
 import { Compose } from '../core/Compose';
 import { PxsFile, PxsDoc, PxsMeta, PxsLayerMeta } from '../core/PxsFile';
 import { BackupCodec } from '../core/BackupCodec';
+import { TemplateDef } from './TemplateDefs';
 
 /** 单工程未压缩体上限（防损坏文件超大分配）。 */
 const PXS_RAW_MAX = 1 << 26;
@@ -55,6 +56,12 @@ export class ProjectStore {
   static newId(): string {
     const rand: number = Math.floor(Math.random() * 46656); // 36^3
     return `p${Date.now().toString(36)}${rand.toString(36).padStart(3, '0')}`;
+  }
+
+  /** 模板实例工程 id：`tpl_` 前缀 + 时间基 36 进制 + 随机尾（同秒多次使用不撞）。 */
+  static newTemplateId(): string {
+    const rand: number = Math.floor(Math.random() * 46656); // 36^3
+    return `tpl_${Date.now().toString(36)}${rand.toString(36).padStart(3, '0')}`;
   }
 
   /** 工程名清洗：去分隔符/井号/换行（防 .pxs 元数据被破坏），限 64 字符。 */
@@ -417,6 +424,40 @@ export class ProjectStore {
     const newId = ProjectStore.newId();
     const ok = await this.saveDoc(newId, pxs.meta, pxs.cells);
     return ok ? newId : undefined;
+  }
+
+  /**
+   * 从 rawfile 模板实例化新工程（模板库「使用」通道）：
+   * rawfile 读取 → 解包 → 完整解析 → 元数据名换本地化名 → 新 id（tpl_ 前缀）落盘。
+   * 复用 saveDoc 全链路（序列化 + 压缩 + 原子写 + 缩略图边车）；
+   * 任何环节失败返回 undefined，不落半成品文件。
+   */
+  async instantiateTemplate(def: TemplateDef, name: string): Promise<string | undefined> {
+    const ctx = this.context;
+    if (ctx === undefined || def.file.length === 0) {
+      return undefined;
+    }
+    let wrapped: Uint8Array;
+    try {
+      wrapped = await ctx.resourceManager.getRawFileContent(def.file);
+    } catch (e) {
+      return undefined;
+    }
+    const raw = await ProjectStore.unwrapBytes(wrapped);
+    if (raw === undefined) {
+      return undefined;
+    }
+    const pxs = PxsFile.parse(raw);
+    if (pxs === undefined) {
+      return undefined;
+    }
+    const n = ProjectStore.sanitizeName(name);
+    if (n.length > 0) {
+      pxs.meta.name = n;
+    }
+    const id = ProjectStore.newTemplateId();
+    const ok = await this.saveDoc(id, pxs.meta, pxs.cells);
+    return ok ? id : undefined;
   }
 
   /** 重命名（读改写全量落盘）；损坏/缺失工程返回 false。 */

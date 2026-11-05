@@ -12,6 +12,7 @@ import { abilityDelegatorRegistry } from '@kit.TestKit';
 import { common } from '@kit.AbilityKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { ProjectStore, ProjectRecord, DEMO_IDS } from '../../../main/ets/viewmodel/ProjectStore';
+import { TemplateDef, TEMPLATE_DEFS, TPL_CATEGORIES } from '../../../main/ets/viewmodel/TemplateDefs';
 import { PixelDoc } from '../../../main/ets/core/PixelDoc';
 import { PxsDoc } from '../../../main/ets/core/PxsFile';
 
@@ -48,6 +49,18 @@ export default function projectStoreTest() {
       for (let i = 0; i < 200; i++) {
         const id = ProjectStore.newId();
         expect(id.startsWith('p')).assertTrue();
+        expect(id.length >= 8).assertTrue();
+        expect(seen.has(id)).assertFalse();
+        seen.add(id);
+      }
+    })
+
+    it('newTemplateIdPrefix', 0, () => {
+      // 模板实例 id：tpl_ 前缀 + 唯一（同秒多次使用不撞）。
+      const seen: Set<string> = new Set<string>();
+      for (let i = 0; i < 200; i++) {
+        const id = ProjectStore.newTemplateId();
+        expect(id.startsWith('tpl_')).assertTrue();
         expect(id.length >= 8).assertTrue();
         expect(seen.has(id)).assertFalse();
         seen.add(id);
@@ -381,6 +394,104 @@ export default function projectStoreTest() {
       expect(miss === undefined).assertTrue();
       // 新 id 为 p 前缀（afterAll 只清 test_ 前缀），显式清理副本
       expect(store.remove(newId)).assertTrue();
+    })
+
+    // ---------- 模板库（1.3.0；生成物回归锁 + 实例化往返） ----------
+
+    it('templateDefsValid', 0, () => {
+      // 15 条 = 12 原创模板 + 3 示例工程入库；六类页签。
+      expect(TEMPLATE_DEFS.length).assertEqual(15);
+      expect(TPL_CATEGORIES.length).assertEqual(6);
+      const cats: Set<string> = new Set<string>();
+      for (const c of TPL_CATEGORIES) {
+        cats.add(c);
+      }
+      const seen: Set<string> = new Set<string>();
+      for (const def of TEMPLATE_DEFS) {
+        expect(def.id.length > 0).assertTrue();
+        expect(seen.has(def.id)).assertFalse();
+        seen.add(def.id);
+        expect(cats.has(def.cat)).assertTrue();
+        expect(def.file.length > 0).assertTrue();
+        expect(def.file.endsWith('.pxs')).assertTrue();
+        expect(def.nameZh.length > 0).assertTrue();
+        expect(def.nameEn.length > 0).assertTrue();
+        expect(def.descZh.length > 0).assertTrue();
+        expect(def.descEn.length > 0).assertTrue();
+        expect(def.w > 0 && def.h > 0).assertTrue();
+        expect(def.frames > 0).assertTrue();
+        expect(def.fps > 0).assertTrue();
+      }
+      // 每类至少 1 个模板（页签不空）
+      for (const c of TPL_CATEGORIES) {
+        let has = false;
+        for (const def of TEMPLATE_DEFS) {
+          if (def.cat === c) {
+            has = true;
+            break;
+          }
+        }
+        expect(has).assertTrue();
+      }
+    })
+
+    it('instantiateTemplateRoundTrip', 0, async () => {
+      // 首个模板（tpl_puppy 32×32 2帧）实例化：本地化名 + 规格一致 + 边车随存。
+      const def = TEMPLATE_DEFS[0];
+      const id1 = await store.instantiateTemplate(def, '测试模板甲');
+      expect(id1 !== undefined).assertTrue();
+      if (id1 === undefined) {
+        return;
+      }
+      expect(id1.startsWith('tpl_')).assertTrue();
+      const pxs: PxsDoc | undefined = await store.loadDoc(id1);
+      expect(pxs !== undefined).assertTrue();
+      if (pxs !== undefined) {
+        expect(pxs.meta.name).assertEqual('测试模板甲');
+        expect(pxs.meta.w).assertEqual(def.w);
+        expect(pxs.meta.h).assertEqual(def.h);
+        expect(pxs.meta.frameCount).assertEqual(def.frames);
+        expect(pxs.meta.fps).assertEqual(def.fps);
+        expect(pxs.cells.length).assertEqual(def.frames);
+        expect(pxs.cells[0].length > 0).assertTrue();
+      }
+      expect(store.readThumb(id1) !== undefined).assertTrue();
+      // 重复实例：新 id 不同（同秒不撞）、名独立，模板源不被污染。
+      const id2 = await store.instantiateTemplate(def, '测试模板乙');
+      expect(id2 !== undefined).assertTrue();
+      expect(id2 === id1).assertFalse();
+      if (id2 !== undefined) {
+        const pxs2: PxsDoc | undefined = await store.loadDoc(id2);
+        expect(pxs2 !== undefined).assertTrue();
+        if (pxs2 !== undefined) {
+          expect(pxs2.meta.name).assertEqual('测试模板乙');
+        }
+      }
+      // 示例工程入库条目（demo_cat.pxs 无 templates/ 前缀路径）同样可实例化。
+      let demoDef: TemplateDef | undefined = undefined;
+      for (const d of TEMPLATE_DEFS) {
+        if (d.id === 'demo_cat') {
+          demoDef = d;
+          break;
+        }
+      }
+      expect(demoDef !== undefined).assertTrue();
+      if (demoDef !== undefined) {
+        const id3 = await store.instantiateTemplate(demoDef, '示例入库');
+        expect(id3 !== undefined).assertTrue();
+        if (id3 !== undefined) {
+          expect(store.remove(id3)).assertTrue();
+        }
+      }
+      // 坏 def（file 空）失败返回 undefined，不落半成品。
+      const bad = new TemplateDef();
+      const badId = await store.instantiateTemplate(bad, '坏模板');
+      expect(badId === undefined).assertTrue();
+      // 显式清理（tpl_ 前缀非 test_ 前缀，afterAll 不覆盖）。
+      expect(store.remove(id1)).assertTrue();
+      if (id2 !== undefined) {
+        expect(store.remove(id2)).assertTrue();
+      }
     })
 
     it('removeCleansThumbSidecar', 0, async () => {

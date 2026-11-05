@@ -8,7 +8,9 @@
 import { image } from '@kit.ImageKit';
 import { EditorLaunch } from '../viewmodel/EditorLaunch';
 import { ProjectStore, ProjectRecord, THUMB_MAX } from '../viewmodel/ProjectStore';
+import { TemplateDef } from '../viewmodel/TemplateDefs';
 import { BackupDialog } from '../components/BackupDialog';
+import { TemplateGallery } from '../components/TemplateGallery';
 
 /** 新建尺寸档（开发计划 §4.1：16/24/32/48/64/96/128；1.2 大画布扩展 192/256，
  *  搭配 CanvasView 局部渲染 + 撤销栈深自适应，见开发计划 §6.5 P1 手段）。 */
@@ -38,6 +40,8 @@ struct ProjectListPage {
   @Local aboutOpen: boolean = false;
   /** 备份/恢复对话框（1.1.0-C）。 */
   @Local backupOpen: boolean = false;
+  /** 模板库画廊（1.3.0）。 */
+  @Local galleryOpen: boolean = false;
   private store: ProjectStore = new ProjectStore();
 
   aboutToAppear(): void {
@@ -180,6 +184,19 @@ struct ProjectListPage {
       this.toast($r('app.string.demo_present_toast'));
     }
     this.refresh();
+  }
+
+  /** 模板库「使用模板」：rawfile 模板 → 沙箱新工程（本地化名）→ 打开编辑器。 */
+  private async useTemplate(def: TemplateDef, name: string): Promise<void> {
+    this.galleryOpen = false;
+    const id = await this.store.instantiateTemplate(def, name);
+    if (id === undefined) {
+      this.toast($r('app.string.tpl_use_failed'));
+      this.refresh();
+      return;
+    }
+    EditorLaunch.openExisting(id);
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/EditorPage' });
   }
 
   @Builder
@@ -468,6 +485,18 @@ struct ProjectListPage {
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.primary_text'))
           Blank()
+          Button($r('app.string.tpl_gallery_title'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(38)
+            .padding({ left: 14, right: 14 })
+            .fontSize(14)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor($r('app.color.primary_text'))
+            .onClick(() => {
+              this.deletingId = '';
+              this.galleryOpen = true;
+            })
           Button($r('app.string.project_new'))
             .type(ButtonType.Normal)
             .borderRadius(10)
@@ -603,6 +632,17 @@ struct ProjectListPage {
         },
         onRestored: (): void => {
           this.refresh();
+        }
+      })
+
+      // 模板库画廊（1.3.0；scrim 自含，「使用模板」落地成功后进编辑器）
+      TemplateGallery({
+        open: this.galleryOpen,
+        onClose: (): void => {
+          this.galleryOpen = false;
+        },
+        onUse: (def: TemplateDef, name: string): void => {
+          this.useTemplate(def, name);
         }
       })
     }

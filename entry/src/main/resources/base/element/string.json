@@ -42,7 +42,7 @@
     },
     {
       "name": "version_value",
-      "value": "v1.2.1"
+      "value": "v1.3.0"
     },
     {
       "name": "mod_tools",
@@ -639,6 +639,50 @@
     {
       "name": "backup_open_fail",
       "value": "文件打开/保存失败，请重试"
+    },
+    {
+      "name": "tpl_gallery_title",
+      "value": "模板库"
+    },
+    {
+      "name": "tpl_cat_all",
+      "value": "全部"
+    },
+    {
+      "name": "tpl_cat_animals",
+      "value": "动物"
+    },
+    {
+      "name": "tpl_cat_scenery",
+      "value": "风景"
+    },
+    {
+      "name": "tpl_cat_food",
+      "value": "食物"
+    },
+    {
+      "name": "tpl_cat_creatures",
+      "value": "奇幻生物"
+    },
+    {
+      "name": "tpl_cat_items",
+      "value": "物品"
+    },
+    {
+      "name": "tpl_cat_glyphs",
+      "value": "图形"
+    },
+    {
+      "name": "tpl_use",
+      "value": "使用模板"
+    },
+    {
+      "name": "tpl_use_failed",
+      "value": "模板使用失败，请重试"
+    },
+    {
+      "name": "tpl_spec",
+      "value": "%d×%d · %d帧 · %dFPS"
     }
   ]
 }
