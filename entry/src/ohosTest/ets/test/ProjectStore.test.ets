@@ -119,6 +119,28 @@ export default function projectStoreTest() {
       expect(back.cells[1][1].data[15]).assertEqual(0x44);
     })
 
+    it('toDocActivatesTopVisibleLayer', 0, async () => {
+      // 多层工程打开默认激活顶层可见层：笔触落在呈现层，不被上层不透明像素遮挡。
+      const doc = new PixelDoc(4, 4);
+      doc.addLayer('L2');
+      const meta = ProjectStore.buildMeta(doc, '顶层可见', 8, 'pico8');
+      expect(await store.saveDoc('test_tv1', meta, doc.cells)).assertTrue();
+      const pxs1: PxsDoc | undefined = await store.loadDoc('test_tv1');
+      expect(pxs1 !== undefined).assertTrue();
+      if (pxs1 !== undefined) {
+        expect(ProjectStore.toDoc(pxs1).activeLayer).assertEqual(1);
+      }
+      // 顶层隐藏 → 回退其下首个可见层（隐藏层上落笔视觉无反馈）。
+      doc.layers[1].visible = false;
+      const meta2 = ProjectStore.buildMeta(doc, '顶层隐藏', 8, 'pico8');
+      expect(await store.saveDoc('test_tv2', meta2, doc.cells)).assertTrue();
+      const pxs2: PxsDoc | undefined = await store.loadDoc('test_tv2');
+      expect(pxs2 !== undefined).assertTrue();
+      if (pxs2 !== undefined) {
+        expect(ProjectStore.toDoc(pxs2).activeLayer).assertEqual(0);
+      }
+    })
+
     it('listRecords', 0, async () => {
       const docA = new PixelDoc(8, 6);
       const metaA = ProjectStore.buildMeta(docA, '工程甲', 8, 'pico8');
@@ -414,6 +436,9 @@ export default function projectStoreTest() {
         expect(cat.cells.length).assertEqual(3);
         expect(cat.cells[0].length).assertEqual(2);
         expect(cat.cells[0][0].data.length).assertEqual(32 * 32 * 4);
+        // 打开即默认激活顶层可见层（小猫）：画脸部笔触不被顶层遮挡（回归锁）。
+        const catDoc = ProjectStore.toDoc(cat);
+        expect(catDoc.activeLayer).assertEqual(1);
       }
       // 缩略图边车随存且尺寸合法。
       const th = store.readThumb('demo_cat');

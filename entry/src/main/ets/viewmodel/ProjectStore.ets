@@ -588,7 +588,9 @@ export class ProjectStore {
 
   // ---------- 模型转换 ----------
 
-  /** PxsDoc → 可编辑 PixelDoc（保留图层 id/可见性/不透明度，抬防撞 nextLayerId）。 */
+  /** PxsDoc → 可编辑 PixelDoc（保留图层 id/可见性/不透明度，抬防撞 nextLayerId）。
+   *  默认激活最顶层「可见」层：打开多层工程若激活底层，笔触会被上层不透明像素遮挡
+   *  （星夜小猫默认夜空层，画脸部无视觉反馈）；全不可见回退堆顶层。 */
   static toDoc(pxs: PxsDoc): PixelDoc {
     const meta = pxs.meta;
     const doc = new PixelDoc(meta.w, meta.h);
@@ -615,7 +617,15 @@ export class ProjectStore {
       }
     }
     doc.activeFrame = 0;
-    doc.activeLayer = 0;
+    // 默认活动层 = 最顶层可见层（不可见层上落笔视觉无反馈）；全不可见回退堆顶层。
+    doc.activeLayer = doc.layers.length - 1;
+    for (let li = doc.layers.length - 1; li >= 0; li--) {
+      const layer = doc.layers[li];
+      if (layer.visible && layer.opacity > 0) {
+        doc.activeLayer = li;
+        break;
+      }
+    }
     return doc;
   }
 

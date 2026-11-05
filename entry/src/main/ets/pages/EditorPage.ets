@@ -105,9 +105,11 @@ struct EditorPage {
     this.paletteStore.saveNow();
   }
 
-  /** 文档就位 + 撤销栈深自适应（1.2 大画布）：按单 cel 字节预算收缩，≤128² 仍 100。 */
+  /** 文档就位 + 撤销栈深自适应（1.2 大画布）：按单 cel 字节预算收缩，≤128² 仍 100。
+   *  session.activeLayer 随 doc 同步（打开工程默认顶层可见层），防面板高亮与绘制层错位。 */
   private adoptDoc(doc: PixelDoc): void {
     this.doc = doc;
+    this.session.activeLayer = doc.activeLayer;
     this.session.undoStack.setCapacity(UndoStack.capacityFor(doc.w * doc.h * 4));
   }
 
