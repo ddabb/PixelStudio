@@ -87,6 +87,32 @@
       "fps": 8
     },
     {
+      "id": "tpl_hedgehog",
+      "cat": "animals",
+      "file": "templates/tpl_hedgehog.pxs",
+      "nameZh": "小刺猬",
+      "nameEn": "Little Hedgehog",
+      "descZh": "背着尖刺的小刺猬",
+      "descEn": "A little hedgehog with spikes",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_owl",
+      "cat": "animals",
+      "file": "templates/tpl_owl.pxs",
+      "nameZh": "猫头鹰",
+      "nameEn": "Little Owl",
+      "descZh": "栖在枝上的大眼猫头鹰",
+      "descEn": "A big-eyed owl on a branch",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
       "id": "demo_cat",
       "cat": "animals",
       "file": "demo_cat.pxs",
@@ -174,6 +200,32 @@
       "descEn": "Terraced fields at dusk",
       "w": 32,
       "h": 32,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_lighthouse",
+      "cat": "scenery",
+      "file": "templates/tpl_lighthouse.pxs",
+      "nameZh": "海边灯塔",
+      "nameEn": "Seaside Lighthouse",
+      "descZh": "星夜下发光的海边灯塔",
+      "descEn": "A lighthouse beaming at night",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_pyramid",
+      "cat": "scenery",
+      "file": "templates/tpl_pyramid.pxs",
+      "nameZh": "金字塔落日",
+      "nameEn": "Pyramid Sunset",
+      "descZh": "落日余晖中的金字塔",
+      "descEn": "Pyramids in the setting sun",
+      "w": 24,
+      "h": 24,
       "frames": 1,
       "fps": 8
     },
@@ -269,6 +321,32 @@
       "fps": 8
     },
     {
+      "id": "tpl_donut",
+      "cat": "food",
+      "file": "templates/tpl_donut.pxs",
+      "nameZh": "甜甜圈",
+      "nameEn": "Sprinkle Donut",
+      "descZh": "撒着糖粒的粉色甜甜圈",
+      "descEn": "A pink-frosted sprinkle donut",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_pizza",
+      "cat": "food",
+      "file": "templates/tpl_pizza.pxs",
+      "nameZh": "披萨",
+      "nameEn": "Pepperoni Pizza",
+      "descZh": "铺满辣肠的芝士披萨",
+      "descEn": "A cheese pizza with pepperoni",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
       "id": "tpl_knight",
       "cat": "creatures",
       "file": "templates/tpl_knight.pxs",
@@ -345,6 +423,32 @@
       "h": 24,
       "frames": 1,
       "fps": 8
+    },
+    {
+      "id": "tpl_robot",
+      "cat": "creatures",
+      "file": "templates/tpl_robot.pxs",
+      "nameZh": "小机器人",
+      "nameEn": "Little Robot",
+      "descZh": "天线闪灯的小机器人",
+      "descEn": "A robot with a blinking antenna",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "fps": 4
+    },
+    {
+      "id": "tpl_mummy",
+      "cat": "creatures",
+      "file": "templates/tpl_mummy.pxs",
+      "nameZh": "小木乃伊",
+      "nameEn": "Little Mummy",
+      "descZh": "蹦蹦跳跳的绷带木乃伊",
+      "descEn": "A hopping bandaged mummy",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "fps": 6
     },
     {
       "id": "demo_slime",
@@ -438,6 +542,32 @@
       "fps": 8
     },
     {
+      "id": "tpl_crown",
+      "cat": "items",
+      "file": "templates/tpl_crown.pxs",
+      "nameZh": "皇冠",
+      "nameEn": "Gold Crown",
+      "descZh": "镶着红珠的金皇冠",
+      "descEn": "A gold crown with ruby orbs",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_hourglass",
+      "cat": "items",
+      "file": "templates/tpl_hourglass.pxs",
+      "nameZh": "沙漏",
+      "nameEn": "Hourglass",
+      "descZh": "沙粒流动的计时沙漏",
+      "descEn": "An hourglass with flowing sand",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "fps": 4
+    },
+    {
       "id": "tpl_heart",
       "cat": "glyphs",
       "file": "templates/tpl_heart.pxs",
@@ -510,6 +640,32 @@
       "nameEn": "Music Note",
       "descZh": "跳动的蓝色音符",
       "descEn": "A blue note bouncing along",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_rainbow",
+      "cat": "glyphs",
+      "file": "templates/tpl_rainbow.pxs",
+      "nameZh": "彩虹",
+      "nameEn": "Pixel Rainbow",
+      "descZh": "云端架起的五色彩虹",
+      "descEn": "A rainbow between the clouds",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 8
+    },
+    {
+      "id": "tpl_snowflake",
+      "cat": "glyphs",
+      "file": "templates/tpl_snowflake.pxs",
+      "nameZh": "雪花",
+      "nameEn": "Snowflake",
+      "descZh": "六瓣对称的蓝色雪花",
+      "descEn": "A six-armed blue snowflake",
       "w": 16,
       "h": 16,
       "frames": 1,

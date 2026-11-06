@@ -2,7 +2,7 @@
 """verify_templates.py — 校验模板库三类产物的一致性并输出 PIL 预览。
 
 校验项：
-1. templates_manifest.json：categories 六类有序、39 条目（三批 36 原创 + 3 示例）、id 唯一；
+1. templates_manifest.json：categories 六类有序、51 条目（四批 48 原创 + 3 示例）、id 唯一；
 2. rawfile 文件 ↔ manifest ↔ .pxs 元数据（name/w/h/fps/frames）逐条一致；
 3. TemplateDefs.ets：id 序列与 manifest 完全一致（防手改漂移）；
 4. .cache/tpl_preview/<id>.png：每模板全帧最近邻放大合成预览（目检画风用）。
@@ -27,7 +27,7 @@ DEFS_ETS = os.path.join(ROOT, 'entry', 'src', 'main', 'ets',
 PREVIEW_DIR = os.path.join(ROOT, '.cache', 'tpl_preview')
 
 EXPECTED_CATS = ['animals', 'scenery', 'food', 'creatures', 'items', 'glyphs']
-EXPECTED_COUNT = 39
+EXPECTED_COUNT = 51
 
 
 def compose_frame(p, f):

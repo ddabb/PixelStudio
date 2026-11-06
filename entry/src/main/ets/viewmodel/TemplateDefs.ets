@@ -34,7 +34,7 @@ export const TPL_CATEGORIES: string[] = [
   'glyphs',
 ];
 
-/** 全部模板（39 个 = 36 新原创 + 3 示例工程；分类序 → 注册序）。 */
+/** 全部模板（51 个 = 48 新原创 + 3 示例工程；分类序 → 注册序）。 */
 export const TEMPLATE_DEFS: TemplateDef[] = [
   {
     id: 'tpl_puppy', cat: 'animals', file: 'templates/tpl_puppy.pxs',
@@ -70,6 +70,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     id: 'tpl_fish', cat: 'animals', file: 'templates/tpl_fish.pxs',
     nameZh: '热带鱼', nameEn: 'Tropical Fish',
     descZh: '红条纹的小热带鱼', descEn: 'A striped tropical fish',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_hedgehog', cat: 'animals', file: 'templates/tpl_hedgehog.pxs',
+    nameZh: '小刺猬', nameEn: 'Little Hedgehog',
+    descZh: '背着尖刺的小刺猬', descEn: 'A little hedgehog with spikes',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_owl', cat: 'animals', file: 'templates/tpl_owl.pxs',
+    nameZh: '猫头鹰', nameEn: 'Little Owl',
+    descZh: '栖在枝上的大眼猫头鹰', descEn: 'A big-eyed owl on a branch',
     w: 16, h: 16, frames: 1, fps: 8
   },
   {
@@ -115,6 +127,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     w: 32, h: 32, frames: 1, fps: 8
   },
   {
+    id: 'tpl_lighthouse', cat: 'scenery', file: 'templates/tpl_lighthouse.pxs',
+    nameZh: '海边灯塔', nameEn: 'Seaside Lighthouse',
+    descZh: '星夜下发光的海边灯塔', descEn: 'A lighthouse beaming at night',
+    w: 24, h: 24, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_pyramid', cat: 'scenery', file: 'templates/tpl_pyramid.pxs',
+    nameZh: '金字塔落日', nameEn: 'Pyramid Sunset',
+    descZh: '落日余晖中的金字塔', descEn: 'Pyramids in the setting sun',
+    w: 24, h: 24, frames: 1, fps: 8
+  },
+  {
     id: 'demo_sunset', cat: 'scenery', file: 'demo_sunset.pxs',
     nameZh: '落日海岸', nameEn: 'Sunset Coast',
     descZh: '棕榈剪影与金色海面', descEn: 'Palm silhouettes on a golden sea',
@@ -157,6 +181,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     w: 16, h: 16, frames: 1, fps: 8
   },
   {
+    id: 'tpl_donut', cat: 'food', file: 'templates/tpl_donut.pxs',
+    nameZh: '甜甜圈', nameEn: 'Sprinkle Donut',
+    descZh: '撒着糖粒的粉色甜甜圈', descEn: 'A pink-frosted sprinkle donut',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_pizza', cat: 'food', file: 'templates/tpl_pizza.pxs',
+    nameZh: '披萨', nameEn: 'Pepperoni Pizza',
+    descZh: '铺满辣肠的芝士披萨', descEn: 'A cheese pizza with pepperoni',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
     id: 'tpl_knight', cat: 'creatures', file: 'templates/tpl_knight.pxs',
     nameZh: '小骑士', nameEn: 'Little Knight',
     descZh: '迈步前进的银甲小骑士', descEn: 'A silver knight marching along',
@@ -191,6 +227,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     nameZh: '小巫师', nameEn: 'Little Wizard',
     descZh: '尖帽白须的小巫师', descEn: 'A wizard with a starry hat',
     w: 24, h: 24, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_robot', cat: 'creatures', file: 'templates/tpl_robot.pxs',
+    nameZh: '小机器人', nameEn: 'Little Robot',
+    descZh: '天线闪灯的小机器人', descEn: 'A robot with a blinking antenna',
+    w: 16, h: 16, frames: 2, fps: 4
+  },
+  {
+    id: 'tpl_mummy', cat: 'creatures', file: 'templates/tpl_mummy.pxs',
+    nameZh: '小木乃伊', nameEn: 'Little Mummy',
+    descZh: '蹦蹦跳跳的绷带木乃伊', descEn: 'A hopping bandaged mummy',
+    w: 16, h: 16, frames: 2, fps: 6
   },
   {
     id: 'demo_slime', cat: 'creatures', file: 'demo_slime.pxs',
@@ -235,6 +283,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     w: 16, h: 16, frames: 1, fps: 8
   },
   {
+    id: 'tpl_crown', cat: 'items', file: 'templates/tpl_crown.pxs',
+    nameZh: '皇冠', nameEn: 'Gold Crown',
+    descZh: '镶着红珠的金皇冠', descEn: 'A gold crown with ruby orbs',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_hourglass', cat: 'items', file: 'templates/tpl_hourglass.pxs',
+    nameZh: '沙漏', nameEn: 'Hourglass',
+    descZh: '沙粒流动的计时沙漏', descEn: 'An hourglass with flowing sand',
+    w: 16, h: 16, frames: 2, fps: 4
+  },
+  {
     id: 'tpl_heart', cat: 'glyphs', file: 'templates/tpl_heart.pxs',
     nameZh: '爱心', nameEn: 'Pixel Heart',
     descZh: '经典像素爱心', descEn: 'A classic pixel heart',
@@ -268,6 +328,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     id: 'tpl_note', cat: 'glyphs', file: 'templates/tpl_note.pxs',
     nameZh: '音符', nameEn: 'Music Note',
     descZh: '跳动的蓝色音符', descEn: 'A blue note bouncing along',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_rainbow', cat: 'glyphs', file: 'templates/tpl_rainbow.pxs',
+    nameZh: '彩虹', nameEn: 'Pixel Rainbow',
+    descZh: '云端架起的五色彩虹', descEn: 'A rainbow between the clouds',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_snowflake', cat: 'glyphs', file: 'templates/tpl_snowflake.pxs',
+    nameZh: '雪花', nameEn: 'Snowflake',
+    descZh: '六瓣对称的蓝色雪花', descEn: 'A six-armed blue snowflake',
     w: 16, h: 16, frames: 1, fps: 8
   },
 ];

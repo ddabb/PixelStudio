@@ -2,7 +2,7 @@
 """
 make_templates.py — 分类模板库生成器（长期任务，章程 docs/模板库长期任务章程.md）。
 
-单一事实源：本脚本登记全部模板（第一批 12 + 第二批 12 新原创 + 3 既有示例），
+单一事实源：本脚本登记全部模板（四批 48 新原创 + 3 既有示例），
 运行后发射三类产物：
   1. entry/src/main/resources/rawfile/templates/{id}.pxs + {id}.thumb（新模板；
      3 个示例沿用 rawfile 平铺既有文件，不复制）；
@@ -1738,6 +1738,545 @@ def build_note():
     }
 
 
+# ====================================================================
+# 第四批（1.2.3）：12 个新原创模板，每类 2 个
+# ====================================================================
+
+# ---------- tpl_hedgehog 小刺猬（animals，16×16，1 帧） ----------
+
+def hedgehog():
+    c = Canvas(16, 16)
+    # 背刺（深灰放射尖刺，伸出轮廓）
+    c.line(5, 4, 3, 1, DGR)
+    c.line(7, 3, 6, 0, DGR)
+    c.line(9, 3, 11, 1, DGR)
+    c.line(11, 4, 13, 2, DGR)
+    c.line(4, 6, 1, 4, DGR)
+    c.line(3, 9, 0, 8, DGR)
+    c.line(3, 11, 1, 13, DGR)
+    # 身体（棕半圆）
+    c.circle(6, 8, 5, BR)
+    c.rect(3, 5, 11, 12, BR)
+    c.circle(8, 9, 4, BR)
+    # 背上刺影（深灰斜纹）
+    c.line(4, 6, 6, 8, DGR)
+    c.line(5, 4, 8, 7, DGR)
+    c.set(6, 10, DGR)
+    c.set(4, 9, DGR)
+    # 脸（肤橙）+ 鼻尖（黑）
+    c.rect(10, 6, 14, 10, PE)
+    c.set(14, 7, PE)
+    c.set(14, 9, PE)
+    c.set(15, 8, BLK)
+    # 眼 + 腮红 + 耳
+    c.set(11, 6, BLK)
+    c.set(12, 8, PK)
+    c.set(10, 4, BR)
+    c.set(11, 4, BR)
+    # 小脚
+    c.rect(5, 13, 6, 13, DGR)
+    c.rect(9, 13, 10, 13, DGR)
+    # 草地点缀
+    c.set(2, 14, GN)
+    c.set(13, 13, GN)
+    return c
+
+
+def build_hedgehog():
+    return {
+        'id': 'tpl_hedgehog', 'name': '小刺猬',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('刺猬', 1)], 'cells': [[hedgehog()]],
+    }
+
+
+# ---------- tpl_owl 猫头鹰（animals，16×16，1 帧） ----------
+
+def owl():
+    c = Canvas(16, 16)
+    # 耳簇（棕）
+    c.set(3, 2, BR)
+    c.set(4, 2, BR)
+    c.set(11, 2, BR)
+    c.set(12, 2, BR)
+    # 身体（棕圆）
+    c.circle(7, 8, 5, BR)
+    c.rect(3, 4, 12, 12, BR)
+    # 翅膀阴影（深灰两侧）
+    c.rect(2, 7, 3, 11, DGR)
+    c.rect(12, 7, 13, 11, DGR)
+    # 腹部（肤橙 + 深灰箭纹）
+    c.circle(7, 10, 3, PE)
+    c.rect(5, 8, 10, 12, PE)
+    c.set(6, 10, DGR)
+    c.set(8, 10, DGR)
+    c.set(7, 11, DGR)
+    c.set(6, 12, DGR)
+    c.set(8, 12, DGR)
+    # 眼周大盘（白 + 黑瞳）
+    c.circle(5, 6, 2, W)
+    c.circle(10, 6, 2, W)
+    c.set(5, 6, BLK)
+    c.set(10, 6, BLK)
+    c.set(6, 6, W)
+    c.set(11, 6, W)
+    # 喙（黄）
+    c.rect(7, 8, 8, 8, Y)
+    c.set(7, 9, Y)
+    # 爪（黄）+ 栖枝（棕）+ 叶（绿）
+    c.set(6, 13, Y)
+    c.set(9, 13, Y)
+    c.rect(3, 14, 12, 14, BR)
+    c.set(12, 13, GN)
+    c.set(13, 12, GN)
+    return c
+
+
+def build_owl():
+    return {
+        'id': 'tpl_owl', 'name': '猫头鹰',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('猫头鹰', 1)], 'cells': [[owl()]],
+    }
+
+
+# ---------- tpl_lighthouse 海边灯塔（scenery，24×24，1 帧） ----------
+
+def lighthouse():
+    c = Canvas(24, 24)
+    # 夜空渐变（暗蓝 → 暗紫）
+    c.lerp_band([(0.0, K), (0.7, K), (1.0, B)])
+    # 星
+    for x, y in [(3, 2), (6, 5), (9, 1), (14, 4), (18, 2), (21, 6), (1, 8), (22, 9)]:
+        c.set(x, y, W)
+    # 灯室（黄亮芯 + 红顶 + 深灰栏杆）
+    c.rect(10, 2, 13, 3, Y)
+    c.rect(9, 1, 14, 1, RD)
+    c.rect(9, 4, 14, 4, DGR)
+    # 光束（黄斜线两侧）
+    c.line(9, 3, 2, 0, Y)
+    c.line(14, 3, 21, 0, Y)
+    # 塔身（白 + 红条纹，上窄下宽）
+    c.rect(9, 5, 14, 8, W)
+    c.rect(8, 9, 15, 13, W)
+    c.rect(8, 14, 15, 17, W)
+    c.rect(9, 6, 14, 7, RD)
+    c.rect(8, 10, 15, 11, RD)
+    c.rect(8, 14, 15, 15, RD)
+    # 塔门（黑拱门）
+    c.rect(11, 13, 12, 17, BLK)
+    c.set(11, 12, BLK)
+    c.set(12, 12, BLK)
+    # 礁石（深灰）
+    c.rect(6, 18, 17, 19, DGR)
+    c.set(5, 19, DGR)
+    c.set(18, 19, DGR)
+    c.set(8, 18, K)
+    c.set(14, 19, K)
+    # 海面（亮蓝 + 白浪线）
+    c.rect(0, 20, 23, 23, BL)
+    for x in range(0, 23, 4):
+        c.rect(x, 21, x + 1, 21, W)
+        c.set(x + 2, 22, W)
+    c.set(10, 22, Y)
+    c.set(11, 22, Y)
+    return c
+
+
+def build_lighthouse():
+    return {
+        'id': 'tpl_lighthouse', 'name': '海边灯塔',
+        'w': 24, 'h': 24, 'fps': 8, 'palette': 'pico8',
+        'layers': [('夜海', 1)], 'cells': [[lighthouse()]],
+    }
+
+
+# ---------- tpl_pyramid 金字塔落日（scenery，24×24，1 帧） ----------
+
+def pyramid():
+    c = Canvas(24, 24)
+    # 暮空渐变（暗紫 → 粉 → 肤橙）
+    c.lerp_band([(0.0, B), (0.55, PK), (1.0, PE)])
+    # 落日（橙圆 + 黄芯）
+    c.circle(11, 11, 5, O)
+    c.circle(11, 11, 3, Y)
+    # 飞鸟（黑人字两组）
+    for bx, by in [(4, 3), (17, 2)]:
+        c.set(bx - 1, by + 1, BLK)
+        c.set(bx, by, BLK)
+        c.set(bx + 1, by + 1, BLK)
+    # 大金字塔（黄 + 肤橙暗面）与远小金字塔
+    tri_fill(c, 8, 20, 22, 20, 15, 6, Y)
+    tri_fill(c, 15, 6, 22, 20, 15, 20, PE)
+    tri_fill(c, 1, 20, 8, 20, 4, 12, Y)
+    tri_fill(c, 4, 12, 8, 20, 4, 20, PE)
+    # 砖纹（深灰点缀）
+    c.line(10, 17, 14, 17, DGR)
+    c.line(11, 12, 13, 12, DGR)
+    c.set(13, 10, DGR)
+    c.set(3, 17, DGR)
+    c.set(3, 18, DGR)
+    # 沙丘（黄 + 肤橙阴影线 + 白高光）
+    c.rect(0, 19, 23, 23, Y)
+    c.rect(0, 19, 23, 19, PE)
+    c.line(2, 21, 6, 21, PE)
+    c.line(15, 22, 20, 22, PE)
+    c.set(9, 22, W)
+    c.set(19, 21, W)
+    return c
+
+
+def build_pyramid():
+    return {
+        'id': 'tpl_pyramid', 'name': '金字塔落日',
+        'w': 24, 'h': 24, 'fps': 8, 'palette': 'pico8',
+        'layers': [('暮沙', 1)], 'cells': [[pyramid()]],
+    }
+
+
+# ---------- tpl_donut 甜甜圈（food，16×16，1 帧） ----------
+
+def donut():
+    c = Canvas(16, 16)
+    # 面团环（棕）
+    for y in range(16):
+        for x in range(16):
+            if (x - 7) ** 2 + (y - 8) ** 2 <= 28:
+                c.set(x, y, BR)
+    # 粉糖霜（上半 + 波浪垂沿）
+    wig = [0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0]
+    for y in range(16):
+        for x in range(16):
+            if (x - 7) ** 2 + (y - 8) ** 2 <= 27 and y <= 8 + wig[x]:
+                c.set(x, y, PK)
+    # 糖霜高光（白弧）
+    c.set(4, 5, W)
+    c.set(5, 4, W)
+    c.set(6, 4, W)
+    # 中孔（透明）
+    c.circle_erase(7, 8, 2)
+    # 撒糖粒（白/黄/亮蓝/红）
+    c.set(6, 5, W)
+    c.set(9, 4, Y)
+    c.set(10, 6, BL)
+    c.set(4, 8, RD)
+    c.set(9, 8, W)
+    c.set(7, 9, Y)
+    # 面团底缘阴影（深灰）
+    c.set(4, 11, DGR)
+    c.set(10, 11, DGR)
+    c.set(7, 12, DGR)
+    return c
+
+
+def build_donut():
+    return {
+        'id': 'tpl_donut', 'name': '甜甜圈',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('甜甜圈', 1)], 'cells': [[donut()]],
+    }
+
+
+# ---------- tpl_pizza 披萨（food，16×16，1 帧） ----------
+
+def pizza():
+    c = Canvas(16, 16)
+    # 饼边（棕环）
+    c.circle(7, 8, 6, BR)
+    # 芝士面（黄）
+    c.circle(7, 8, 5, Y)
+    # 边上芝麻（白点）
+    c.set(3, 5, W)
+    c.set(2, 8, W)
+    c.set(3, 11, W)
+    c.set(7, 2, W)
+    c.set(10, 2, W)
+    c.set(12, 6, W)
+    c.set(12, 10, W)
+    c.set(7, 14, W)
+    # 辣肠（红圆 + 深芯）
+    c.circle(5, 6, 1, RD)
+    c.set(5, 6, B)
+    c.circle(10, 6, 1, RD)
+    c.set(10, 6, B)
+    c.circle(5, 10, 1, RD)
+    c.set(5, 10, B)
+    c.circle(10, 10, 1, RD)
+    c.set(10, 10, B)
+    # 芝士拉丝高光（白）
+    c.set(7, 8, W)
+    c.set(8, 8, W)
+    c.set(7, 4, W)
+    c.set(8, 12, W)
+    return c
+
+
+def build_pizza():
+    return {
+        'id': 'tpl_pizza', 'name': '披萨',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('披萨', 1)], 'cells': [[pizza()]],
+    }
+
+
+# ---------- tpl_robot 小机器人（creatures，16×16，2 帧天线闪） ----------
+
+def robot(frame):
+    c = Canvas(16, 16)
+    # 天线（帧 0 红亮 / 帧 1 橙暗）
+    c.set(7, 1, DGR)
+    c.set(7, 0, RD if frame == 0 else O)
+    # 头（浅灰）+ 侧耳（深灰）
+    c.rect(4, 2, 11, 6, GR)
+    c.set(3, 4, DGR)
+    c.set(12, 4, DGR)
+    # 屏幕脸（亮蓝 + 白方瞳）
+    c.rect(5, 3, 10, 5, BL)
+    c.rect(6, 4, 7, 4, W)
+    c.rect(9, 4, 10, 4, W)
+    # 身体（浅灰）+ 胸屏（深灰）
+    c.rect(4, 7, 11, 11, GR)
+    c.rect(6, 8, 9, 10, DGR)
+    # 胸灯（帧 0 黄 / 帧 1 绿）
+    c.rect(7, 9, 8, 9, Y if frame == 0 else GN)
+    # 手臂（深灰）
+    c.rect(2, 8, 3, 10, DGR)
+    c.rect(12, 8, 13, 10, DGR)
+    # 腿脚（深灰 + 白足）
+    c.rect(4, 12, 6, 13, DGR)
+    c.rect(9, 12, 11, 13, DGR)
+    c.rect(4, 14, 6, 14, W)
+    c.rect(9, 14, 11, 14, W)
+    return c
+
+
+def build_robot():
+    cells = []
+    for f in range(2):
+        cells.append([robot(f)])
+    return {
+        'id': 'tpl_robot', 'name': '小机器人',
+        'w': 16, 'h': 16, 'fps': 4, 'palette': 'pico8',
+        'layers': [('机器人', 1)], 'cells': cells,
+    }
+
+
+# ---------- tpl_mummy 小木乃伊（creatures，16×16，2 帧蹦跳） ----------
+
+def mummy(frame):
+    c = Canvas(16, 16)
+    dy = 0 if frame == 0 else -1
+    y0 = 3 + dy
+    # 头（白）
+    c.rect(5, y0, 10, y0 + 4, W)
+    # 身体（白）
+    c.rect(4, y0 + 5, 11, y0 + 10, W)
+    # 绷带条纹（浅灰横带 + 深灰斜纹）
+    c.rect(5, y0 + 1, 10, y0 + 1, GR)
+    c.rect(5, y0 + 3, 10, y0 + 3, GR)
+    c.rect(4, y0 + 7, 11, y0 + 7, GR)
+    c.line(4, y0 + 5, 6, y0 + 6, DGR)
+    c.line(8, y0 + 6, 10, y0 + 5, DGR)
+    c.line(6, y0 + 8, 8, y0 + 9, DGR)
+    c.line(9, y0 + 9, 11, y0 + 10, DGR)
+    # 眼缝（黑，帧间左右移）
+    ex = 7 if frame == 0 else 6
+    c.rect(ex, y0 + 2, ex + 1, y0 + 2, BLK)
+    # 双手（白，平举）
+    c.rect(2, y0 + 6, 4, y0 + 7, W)
+    c.rect(11, y0 + 6, 13, y0 + 7, W)
+    # 双腿（白）
+    c.rect(5, y0 + 11, 6, y0 + 12, W)
+    c.rect(9, y0 + 11, 10, y0 + 12, W)
+    # 地影（浅灰）
+    c.set(6, 15, GR)
+    c.set(7, 15, GR)
+    c.set(9, 15, GR)
+    c.set(10, 15, GR)
+    return c
+
+
+def build_mummy():
+    cells = []
+    for f in range(2):
+        cells.append([mummy(f)])
+    return {
+        'id': 'tpl_mummy', 'name': '小木乃伊',
+        'w': 16, 'h': 16, 'fps': 6, 'palette': 'pico8',
+        'layers': [('木乃伊', 1)], 'cells': cells,
+    }
+
+
+# ---------- tpl_crown 皇冠（items，16×16，1 帧） ----------
+
+def crown():
+    c = Canvas(16, 16)
+    # 冠体锯齿轮廓（金）
+    tops = {3: 7, 4: 8, 5: 9, 6: 6, 7: 5, 8: 5, 9: 6, 10: 9, 11: 8, 12: 7}
+    for x, t in tops.items():
+        c.rect(x, t, x, 13, Y)
+    c.rect(3, 13, 12, 13, Y)
+    # 冠体右暗面（橙）
+    c.rect(11, 10, 12, 12, O)
+    c.set(12, 13, O)
+    # 尖顶红珠
+    c.set(3, 6, RD)
+    c.set(7, 4, RD)
+    c.set(8, 4, RD)
+    c.set(12, 6, RD)
+    # 冠带饰珠（红/蓝）
+    c.set(5, 11, RD)
+    c.set(8, 11, BL)
+    c.set(11, 11, RD)
+    # 左受光高光（白）
+    c.set(3, 7, W)
+    c.set(6, 6, W)
+    c.set(7, 5, W)
+    return c
+
+
+def build_crown():
+    return {
+        'id': 'tpl_crown', 'name': '皇冠',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('皇冠', 1)], 'cells': [[crown()]],
+    }
+
+
+# ---------- tpl_hourglass 沙漏（items，16×16，2 帧流沙） ----------
+
+def hourglass(frame):
+    c = Canvas(16, 16)
+    # 木顶/木底（深灰）
+    c.rect(3, 1, 12, 2, DGR)
+    c.rect(3, 13, 12, 14, DGR)
+    # 玻璃轮廓（亮蓝）
+    c.line(4, 3, 6, 7, BL)
+    c.line(11, 3, 9, 7, BL)
+    c.line(6, 8, 4, 12, BL)
+    c.line(9, 8, 11, 12, BL)
+    c.set(7, 7, BL)
+    c.set(8, 7, BL)
+    c.set(7, 8, BL)
+    c.set(8, 8, BL)
+    # 沙（黄）
+    if frame == 0:
+        # 上斗满沙 + 下底薄层
+        c.rect(5, 3, 10, 4, Y)
+        c.rect(6, 5, 9, 5, Y)
+        c.rect(7, 6, 8, 6, Y)
+        c.set(7, 7, Y)
+        c.set(8, 7, Y)
+        c.rect(6, 12, 9, 12, Y)
+        # 沙面高光（白）
+        c.set(6, 3, W)
+        c.set(7, 3, W)
+    else:
+        # 上斗将尽 + 沙流 + 下堆
+        c.rect(7, 5, 8, 6, Y)
+        c.rect(7, 7, 8, 10, Y)
+        tri_fill(c, 5, 12, 10, 12, 7, 10, Y)
+        c.rect(6, 12, 9, 12, Y)
+        # 沙面高光（白）
+        c.set(6, 5, W)
+    # 木框侧柱（深灰）
+    c.set(3, 3, DGR)
+    c.set(12, 3, DGR)
+    c.set(3, 12, DGR)
+    c.set(12, 12, DGR)
+    return c
+
+
+def build_hourglass():
+    cells = []
+    for f in range(2):
+        cells.append([hourglass(f)])
+    return {
+        'id': 'tpl_hourglass', 'name': '沙漏',
+        'w': 16, 'h': 16, 'fps': 4, 'palette': 'pico8',
+        'layers': [('沙漏', 1)], 'cells': cells,
+    }
+
+
+# ---------- tpl_rainbow 彩虹（glyphs，16×16，1 帧） ----------
+
+def rainbow():
+    c = Canvas(16, 16)
+    # 五色虹带（上半圆环，外红内蓝）
+    for y in range(13):
+        for x in range(16):
+            d = (x - 7.5) ** 2 + (y - 12) ** 2
+            if d <= 0 or y > 12:
+                continue
+            if 24 < d <= 38:
+                c.set(x, y, RD)
+            elif 15 < d <= 24:
+                c.set(x, y, O)
+            elif 8 < d <= 15:
+                c.set(x, y, Y)
+            elif 3 < d <= 8:
+                c.set(x, y, GN)
+            elif d <= 3:
+                c.set(x, y, BL)
+    # 端头云朵（白 + 浅灰底影）
+    c.circle(2, 12, 2, W)
+    c.circle(13, 12, 2, W)
+    c.set(1, 11, W)
+    c.set(2, 10, W)
+    c.set(3, 11, W)
+    c.set(12, 11, W)
+    c.set(13, 10, W)
+    c.set(14, 11, W)
+    c.set(1, 13, GR)
+    c.set(2, 14, GR)
+    c.set(13, 13, GR)
+    c.set(14, 14, GR)
+    return c
+
+
+def build_rainbow():
+    return {
+        'id': 'tpl_rainbow', 'name': '彩虹',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('彩虹', 1)], 'cells': [[rainbow()]],
+    }
+
+
+# ---------- tpl_snowflake 雪花（glyphs，16×16，1 帧） ----------
+
+def snowflake():
+    c = Canvas(16, 16)
+    # 六臂（亮蓝：纵臂 + 双对角臂）
+    c.line(7, 1, 7, 14, BL)
+    c.line(2, 2, 12, 12, BL)
+    c.line(12, 2, 2, 12, BL)
+    # 中芯（白）
+    c.circle(7, 7, 1, W)
+    # 臂上分支（白短刺，避开臂线）
+    c.set(6, 3, W)
+    c.set(8, 3, W)
+    c.set(6, 12, W)
+    c.set(8, 12, W)
+    c.set(4, 3, W)
+    c.set(3, 4, W)
+    c.set(11, 10, W)
+    c.set(10, 11, W)
+    c.set(11, 4, W)
+    c.set(10, 3, W)
+    c.set(3, 10, W)
+    c.set(4, 11, W)
+    return c
+
+
+def build_snowflake():
+    return {
+        'id': 'tpl_snowflake', 'name': '雪花',
+        'w': 16, 'h': 16, 'fps': 8, 'palette': 'pico8',
+        'layers': [('雪花', 1)], 'cells': [[snowflake()]],
+    }
+
+
+
 # ---------- 登记表（分类序 → 注册序；desc 单行短句） ----------
 
 # 既有示例（file 指向 rawfile 平铺文件，不复制不重生成）。
@@ -1773,7 +2312,14 @@ NEW_BUILDS = [build_puppy, build_bird, build_forest, build_lake, build_cake,
               build_burger, build_cocoa,
               build_bat, build_wizard,
               build_key, build_scroll,
-              build_gem, build_note]
+              build_gem, build_note,
+              # 第四批（1.2.3）：每类 2 个
+              build_hedgehog, build_owl,
+              build_lighthouse, build_pyramid,
+              build_donut, build_pizza,
+              build_robot, build_mummy,
+              build_crown, build_hourglass,
+              build_rainbow, build_snowflake]
 NEW_META = {
     'tpl_puppy': dict(cat='animals', nameEn='Shiba Puppy',
                       descZh='奶油胸的摇尾小柴犬',
@@ -1885,6 +2431,43 @@ NEW_META = {
     'tpl_note': dict(cat='glyphs', nameEn='Music Note',
                      descZh='跳动的蓝色音符',
                      descEn='A blue note bouncing along'),
+    # 第四批（1.2.3）
+    'tpl_hedgehog': dict(cat='animals', nameEn='Little Hedgehog',
+                         descZh='背着尖刺的小刺猬',
+                         descEn='A little hedgehog with spikes'),
+    'tpl_owl': dict(cat='animals', nameEn='Little Owl',
+                    descZh='栖在枝上的大眼猫头鹰',
+                    descEn='A big-eyed owl on a branch'),
+    'tpl_lighthouse': dict(cat='scenery', nameEn='Seaside Lighthouse',
+                           descZh='星夜下发光的海边灯塔',
+                           descEn='A lighthouse beaming at night'),
+    'tpl_pyramid': dict(cat='scenery', nameEn='Pyramid Sunset',
+                        descZh='落日余晖中的金字塔',
+                        descEn='Pyramids in the setting sun'),
+    'tpl_donut': dict(cat='food', nameEn='Sprinkle Donut',
+                      descZh='撒着糖粒的粉色甜甜圈',
+                      descEn='A pink-frosted sprinkle donut'),
+    'tpl_pizza': dict(cat='food', nameEn='Pepperoni Pizza',
+                      descZh='铺满辣肠的芝士披萨',
+                      descEn='A cheese pizza with pepperoni'),
+    'tpl_robot': dict(cat='creatures', nameEn='Little Robot',
+                      descZh='天线闪灯的小机器人',
+                      descEn='A robot with a blinking antenna'),
+    'tpl_mummy': dict(cat='creatures', nameEn='Little Mummy',
+                      descZh='蹦蹦跳跳的绷带木乃伊',
+                      descEn='A hopping bandaged mummy'),
+    'tpl_crown': dict(cat='items', nameEn='Gold Crown',
+                      descZh='镶着红珠的金皇冠',
+                      descEn='A gold crown with ruby orbs'),
+    'tpl_hourglass': dict(cat='items', nameEn='Hourglass',
+                          descZh='沙粒流动的计时沙漏',
+                          descEn='An hourglass with flowing sand'),
+    'tpl_rainbow': dict(cat='glyphs', nameEn='Pixel Rainbow',
+                        descZh='云端架起的五色彩虹',
+                        descEn='A rainbow between the clouds'),
+    'tpl_snowflake': dict(cat='glyphs', nameEn='Snowflake',
+                          descZh='六瓣对称的蓝色雪花',
+                          descEn='A six-armed blue snowflake'),
 }
 
 
