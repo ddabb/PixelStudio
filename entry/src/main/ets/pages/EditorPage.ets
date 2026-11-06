@@ -23,6 +23,7 @@ import { PaletteBar } from '../components/PaletteBar';
 import { PalettePanel } from '../components/PalettePanel';
 import { ExportPanel } from '../components/ExportPanel';
 import { TextToolDialog } from '../components/TextToolDialog';
+import { ImageImportDialog } from '../components/ImageImportDialog';
 
 /** 播放定时器最小间隔（ms）：对齐 60Hz 帧节流，防高 FPS 空转。 */
 const PLAY_TICK_MS = 16;
@@ -50,6 +51,8 @@ struct EditorPage {
   @Local textOpen: boolean = false;
   @Local textX: number = 0;
   @Local textY: number = 0;
+  /** 图片导入为图层（1.6.0 P1）：对话框开关。 */
+  @Local importOpen: boolean = false;
   private projectId: string = '';
   private projectStore: ProjectStore = new ProjectStore();
   private autosaveTimerId: number = -1;
@@ -113,10 +116,14 @@ struct EditorPage {
     this.session.undoStack.setCapacity(UndoStack.capacityFor(doc.w * doc.h * 4));
   }
 
-  /** 系统返回：文本框打开先收框；否则先落盘再退出（返回键/侧滑统一入口）。 */
+  /** 系统返回：文本框/导入框打开先收框；否则先落盘再退出（返回键/侧滑统一入口）。 */
   onBackPress(): boolean {
     if (this.textOpen) {
       this.textOpen = false;
+      return true;
+    }
+    if (this.importOpen) {
+      this.importOpen = false;
       return true;
     }
     this.saveNow();
@@ -260,6 +267,19 @@ struct EditorPage {
     this.getUIContext().animateTo({ duration: 220, curve: Curve.EaseOut }, (): void => {
       this.paletteOpen = false;
     });
+  }
+
+  /** 资源键名 → 字符串（默认图层名等参与逻辑的文案）。 */
+  private strByName(name: string): string {
+    const ctx = this.getUIContext().getHostContext();
+    if (ctx === undefined) {
+      return name;
+    }
+    try {
+      return ctx.resourceManager.getStringByNameSync(name);
+    } catch (e) {
+      return name;
+    }
   }
 
   private gridLabel(): ResourceStr {
@@ -503,6 +523,18 @@ struct EditorPage {
       this.sizeButton(2)
       this.sizeButton(3)
       Blank()
+      Button($r('app.string.import_entry'))
+        .type(ButtonType.Normal)
+        .borderRadius(10)
+        .height(36)
+        .padding({ left: 14, right: 14 })
+        .fontSize(14)
+        .backgroundColor($r('app.color.card_background'))
+        .fontColor($r('app.color.primary_text'))
+        .onClick(() => {
+          this.importOpen = true;
+          Haptics.tick();
+        })
       Button($r('app.string.clear_canvas'))
         .type(ButtonType.Normal)
         .borderRadius(10)
@@ -809,6 +841,23 @@ struct EditorPage {
           onClose: (): void => { this.textOpen = false; }
         })
       }
+      // 图片导入为图层（1.6.0 P1）：输出尺寸锁定当前画布，层满/长度不符提示不写入。
+      ImageImportDialog({
+        open: this.importOpen,
+        mode: 'layer',
+        fixedW: this.doc.w,
+        fixedH: this.doc.h,
+        onClose: (): void => { this.importOpen = false; },
+        onPixels: (rgba: Uint8Array): void => {
+          this.importOpen = false;
+          if (DocOps.importLayer(this.doc, this.session, this.strByName('layer_name_default')
+            .replace('%d', '1'), rgba)) {
+            return;
+          }
+          this.getUIContext().getPromptAction()
+            .showToast({ message: $r('app.string.import_layer_full') });
+        }
+      })
     }
     .width('100%')
     .height('100%')

@@ -11,6 +11,7 @@ import { ProjectStore, ProjectRecord, THUMB_MAX } from '../viewmodel/ProjectStor
 import { TemplateDef } from '../viewmodel/TemplateDefs';
 import { BackupDialog } from '../components/BackupDialog';
 import { TemplateGallery } from '../components/TemplateGallery';
+import { ImageImportDialog } from '../components/ImageImportDialog';
 
 /** 新建尺寸档（开发计划 §4.1：16/24/32/48/64/96/128；1.2 大画布扩展 192/256，
  *  搭配 CanvasView 局部渲染 + 撤销栈深自适应，见开发计划 §6.5 P1 手段）。 */
@@ -42,6 +43,8 @@ struct ProjectListPage {
   @Local backupOpen: boolean = false;
   /** 模板库画廊（1.3.0）。 */
   @Local galleryOpen: boolean = false;
+  /** 图片转像素画对话框（1.6.0）。 */
+  @Local importOpen: boolean = false;
   private store: ProjectStore = new ProjectStore();
 
   aboutToAppear(): void {
@@ -195,6 +198,13 @@ struct ProjectListPage {
       this.refresh();
       return;
     }
+    EditorLaunch.openExisting(id);
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/EditorPage' });
+  }
+
+  /** 图片转像素「生成工程」：已落盘 → 打开既有工程链路进编辑器（复用模板通道）。 */
+  private openImported(id: string): void {
+    this.importOpen = false;
     EditorLaunch.openExisting(id);
     this.getUIContext().getRouter().pushUrl({ url: 'pages/EditorPage' });
   }
@@ -484,6 +494,9 @@ struct ProjectListPage {
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.primary_text'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
           Blank()
           Button($r('app.string.tpl_gallery_title'))
             .type(ButtonType.Normal)
@@ -496,6 +509,18 @@ struct ProjectListPage {
             .onClick(() => {
               this.deletingId = '';
               this.galleryOpen = true;
+            })
+          Button($r('app.string.import_entry'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(38)
+            .padding({ left: 14, right: 14 })
+            .fontSize(14)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor($r('app.color.primary_text'))
+            .onClick(() => {
+              this.deletingId = '';
+              this.importOpen = true;
             })
           Button($r('app.string.project_new'))
             .type(ButtonType.Normal)
@@ -643,6 +668,18 @@ struct ProjectListPage {
         },
         onUse: (def: TemplateDef, name: string): void => {
           this.useTemplate(def, name);
+        }
+      })
+
+      // 图片转像素画（1.6.0；scrim 自含，「生成工程」走先落盘再打开链路）
+      ImageImportDialog({
+        open: this.importOpen,
+        mode: 'project',
+        onClose: (): void => {
+          this.importOpen = false;
+        },
+        onCreated: (id: string): void => {
+          this.openImported(id);
         }
       })
     }

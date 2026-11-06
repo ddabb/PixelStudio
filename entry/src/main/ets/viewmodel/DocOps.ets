@@ -137,6 +137,46 @@ export class DocOps {
     return true;
   }
 
+  /**
+   * 图片导入为新图层（1.6.0，功能需求 P1）：堆顶加层 + 活动帧 cel 写入转换结果；
+   * 单条 DocEntry 撤销（撤销=移除整层回到导入前；重做=重插层并重写像素）。
+   * 8 层上限返回 false（调用方提示「图层已达上限」）；rgba 长度须等于 w*h*4。
+   */
+  static importLayer(doc: PixelDoc, session: EditorSession, name: string,
+    rgba: Uint8Array): boolean {
+    if (doc.layers.length >= MAX_LAYERS || rgba.length !== doc.w * doc.h * 4) {
+      return false;
+    }
+    DocOps.stopPlay(session);
+    const activeBefore = doc.activeLayer;
+    const layer = doc.addLayer(name);
+    if (layer === undefined) {
+      return false;
+    }
+    const li = doc.layers.length - 1;
+    const fi = doc.activeFrame;
+    doc.cells[fi][li].data.set(rgba);
+    const saved = rgba.slice();
+    const cels: PixelBuffer[] = [];
+    for (let f = 0; f < doc.cells.length; f++) {
+      cels.push(doc.cells[f][li]);
+    }
+    session.undoStack.push(new DocEntry(
+      (): void => {
+        DocOps.spliceLayer(doc, li, layer, cels, false);
+        DocOps.syncActive(doc, session, activeBefore);
+      },
+      (): void => {
+        DocOps.spliceLayer(doc, li, layer, cels, true);
+        doc.cells[fi][li].data.set(saved);
+        DocOps.syncActive(doc, session, li);
+      }
+    ));
+    DocOps.syncActive(doc, session, li);
+    DocOps.bump(session);
+    return true;
+  }
+
   // ---------- 图层：元数据操作 ----------
 
   private static layerAt(doc: PixelDoc, li: number): PixelLayer | undefined {

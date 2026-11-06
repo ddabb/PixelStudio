@@ -42,7 +42,7 @@
     },
     {
       "name": "version_value",
-      "value": "v1.5.0"
+      "value": "v1.6.0"
     },
     {
       "name": "mod_tools",
@@ -683,6 +683,98 @@
     {
       "name": "tpl_spec",
       "value": "%d×%d · %d帧 · %dFPS"
+    },
+    {
+      "name": "import_entry",
+      "value": "图片转像素"
+    },
+    {
+      "name": "import_title",
+      "value": "图片转像素画"
+    },
+    {
+      "name": "import_hint",
+      "value": "选择一张本地图片，转换为可编辑像素画"
+    },
+    {
+      "name": "import_pick",
+      "value": "选择图片"
+    },
+    {
+      "name": "import_name_default",
+      "value": "图片像素画"
+    },
+    {
+      "name": "import_size_label",
+      "value": "输出尺寸"
+    },
+    {
+      "name": "import_fit_label",
+      "value": "适配方式"
+    },
+    {
+      "name": "import_fit_cover",
+      "value": "居中裁切"
+    },
+    {
+      "name": "import_fit_contain",
+      "value": "完整留边"
+    },
+    {
+      "name": "import_sample_label",
+      "value": "采样"
+    },
+    {
+      "name": "import_sample_box",
+      "value": "面积平均"
+    },
+    {
+      "name": "import_sample_nearest",
+      "value": "中心取样"
+    },
+    {
+      "name": "import_color_label",
+      "value": "色彩模式"
+    },
+    {
+      "name": "import_color_none",
+      "value": "不量化"
+    },
+    {
+      "name": "import_color_palette",
+      "value": "按色板"
+    },
+    {
+      "name": "import_color_auto",
+      "value": "自动色板"
+    },
+    {
+      "name": "import_dither",
+      "value": "抖动"
+    },
+    {
+      "name": "import_generate",
+      "value": "生成工程"
+    },
+    {
+      "name": "import_import",
+      "value": "导入为图层"
+    },
+    {
+      "name": "import_failed",
+      "value": "图片导入失败"
+    },
+    {
+      "name": "import_layer_full",
+      "value": "图层已达上限"
+    },
+    {
+      "name": "import_preview_src",
+      "value": "原图"
+    },
+    {
+      "name": "import_preview_out",
+      "value": "效果"
     }
   ]
 }

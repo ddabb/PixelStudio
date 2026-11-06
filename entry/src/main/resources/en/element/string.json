@@ -42,7 +42,7 @@
     },
     {
       "name": "version_value",
-      "value": "v1.5.0"
+      "value": "v1.6.0"
     },
     {
       "name": "mod_tools",
@@ -683,6 +683,98 @@
     {
       "name": "tpl_spec",
       "value": "%d×%d · %d frames · %d FPS"
+    },
+    {
+      "name": "import_entry",
+      "value": "Image to Pixels"
+    },
+    {
+      "name": "import_title",
+      "value": "Image to Pixel Art"
+    },
+    {
+      "name": "import_hint",
+      "value": "Pick a local image to turn it into an editable pixel artwork"
+    },
+    {
+      "name": "import_pick",
+      "value": "Pick Image"
+    },
+    {
+      "name": "import_name_default",
+      "value": "Image Pixel Art"
+    },
+    {
+      "name": "import_size_label",
+      "value": "Output Size"
+    },
+    {
+      "name": "import_fit_label",
+      "value": "Fit"
+    },
+    {
+      "name": "import_fit_cover",
+      "value": "Center Crop"
+    },
+    {
+      "name": "import_fit_contain",
+      "value": "Fit Whole"
+    },
+    {
+      "name": "import_sample_label",
+      "value": "Sampling"
+    },
+    {
+      "name": "import_sample_box",
+      "value": "Box Average"
+    },
+    {
+      "name": "import_sample_nearest",
+      "value": "Nearest"
+    },
+    {
+      "name": "import_color_label",
+      "value": "Colors"
+    },
+    {
+      "name": "import_color_none",
+      "value": "Truecolor"
+    },
+    {
+      "name": "import_color_palette",
+      "value": "Palette"
+    },
+    {
+      "name": "import_color_auto",
+      "value": "Auto"
+    },
+    {
+      "name": "import_dither",
+      "value": "Dither"
+    },
+    {
+      "name": "import_generate",
+      "value": "Create Project"
+    },
+    {
+      "name": "import_import",
+      "value": "Import as Layer"
+    },
+    {
+      "name": "import_failed",
+      "value": "Image import failed"
+    },
+    {
+      "name": "import_layer_full",
+      "value": "Layer limit reached"
+    },
+    {
+      "name": "import_preview_src",
+      "value": "Source"
+    },
+    {
+      "name": "import_preview_out",
+      "value": "Result"
     }
   ]
 }
