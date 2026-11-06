@@ -399,8 +399,8 @@ export default function projectStoreTest() {
     // ---------- 模板库（1.3.0；生成物回归锁 + 实例化往返） ----------
 
     it('templateDefsValid', 0, () => {
-      // 27 条 = 两批 24 原创模板 + 3 示例工程入库；六类页签。
-      expect(TEMPLATE_DEFS.length).assertEqual(27);
+      // 39 条 = 三批 36 原创模板 + 3 示例工程入库；六类页签。
+      expect(TEMPLATE_DEFS.length).assertEqual(39);
       expect(TPL_CATEGORIES.length).assertEqual(6);
       const cats: Set<string> = new Set<string>();
       for (const c of TPL_CATEGORIES) {

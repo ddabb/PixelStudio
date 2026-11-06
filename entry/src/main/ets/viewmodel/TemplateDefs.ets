@@ -34,7 +34,7 @@ export const TPL_CATEGORIES: string[] = [
   'glyphs',
 ];
 
-/** 全部模板（27 个 = 24 新原创 + 3 示例工程；分类序 → 注册序）。 */
+/** 全部模板（39 个 = 36 新原创 + 3 示例工程；分类序 → 注册序）。 */
 export const TEMPLATE_DEFS: TemplateDef[] = [
   {
     id: 'tpl_puppy', cat: 'animals', file: 'templates/tpl_puppy.pxs',
@@ -58,6 +58,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     id: 'tpl_penguin', cat: 'animals', file: 'templates/tpl_penguin.pxs',
     nameZh: '小企鹅', nameEn: 'Little Penguin',
     descZh: '挺着白肚的小企鹅', descEn: 'A penguin with a white belly',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_turtle', cat: 'animals', file: 'templates/tpl_turtle.pxs',
+    nameZh: '小海龟', nameEn: 'Little Turtle',
+    descZh: '沙滩上慢步的小海龟', descEn: 'A little turtle on the sand',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_fish', cat: 'animals', file: 'templates/tpl_fish.pxs',
+    nameZh: '热带鱼', nameEn: 'Tropical Fish',
+    descZh: '红条纹的小热带鱼', descEn: 'A striped tropical fish',
     w: 16, h: 16, frames: 1, fps: 8
   },
   {
@@ -91,6 +103,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     w: 32, h: 32, frames: 1, fps: 8
   },
   {
+    id: 'tpl_waterfall', cat: 'scenery', file: 'templates/tpl_waterfall.pxs',
+    nameZh: '林间瀑布', nameEn: 'Forest Waterfall',
+    descZh: '崖壁间垂落的白瀑', descEn: 'A white fall between cliffs',
+    w: 48, h: 48, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_terrace', cat: 'scenery', file: 'templates/tpl_terrace.pxs',
+    nameZh: '黄昏梯田', nameEn: 'Dusk Terraces',
+    descZh: '夕照下层叠的梯田', descEn: 'Terraced fields at dusk',
+    w: 32, h: 32, frames: 1, fps: 8
+  },
+  {
     id: 'demo_sunset', cat: 'scenery', file: 'demo_sunset.pxs',
     nameZh: '落日海岸', nameEn: 'Sunset Coast',
     descZh: '棕榈剪影与金色海面', descEn: 'Palm silhouettes on a golden sea',
@@ -121,6 +145,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     w: 16, h: 16, frames: 1, fps: 8
   },
   {
+    id: 'tpl_burger', cat: 'food', file: 'templates/tpl_burger.pxs',
+    nameZh: '芝士汉堡', nameEn: 'Cheese Burger',
+    descZh: '层层分明的芝士汉堡', descEn: 'A stacked cheeseburger',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_cocoa', cat: 'food', file: 'templates/tpl_cocoa.pxs',
+    nameZh: '热可可', nameEn: 'Hot Cocoa',
+    descZh: '冒着热气的热可可', descEn: 'A steaming cup of cocoa',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
     id: 'tpl_knight', cat: 'creatures', file: 'templates/tpl_knight.pxs',
     nameZh: '小骑士', nameEn: 'Little Knight',
     descZh: '迈步前进的银甲小骑士', descEn: 'A silver knight marching along',
@@ -143,6 +179,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     nameZh: '蘑菇小人', nameEn: 'Mushroom Folk',
     descZh: '红帽白点的蘑菇小人', descEn: 'A red-capped mushroom fellow',
     w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_bat', cat: 'creatures', file: 'templates/tpl_bat.pxs',
+    nameZh: '小蝙蝠', nameEn: 'Little Bat',
+    descZh: '扇动翅膀的小蝙蝠', descEn: 'A bat flapping its wings',
+    w: 16, h: 16, frames: 2, fps: 6
+  },
+  {
+    id: 'tpl_wizard', cat: 'creatures', file: 'templates/tpl_wizard.pxs',
+    nameZh: '小巫师', nameEn: 'Little Wizard',
+    descZh: '尖帽白须的小巫师', descEn: 'A wizard with a starry hat',
+    w: 24, h: 24, frames: 1, fps: 8
   },
   {
     id: 'demo_slime', cat: 'creatures', file: 'demo_slime.pxs',
@@ -175,6 +223,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     w: 16, h: 16, frames: 2, fps: 6
   },
   {
+    id: 'tpl_key', cat: 'items', file: 'templates/tpl_key.pxs',
+    nameZh: '黄铜钥匙', nameEn: 'Brass Key',
+    descZh: '黄铜环头旧钥匙', descEn: 'An old brass key',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_scroll', cat: 'items', file: 'templates/tpl_scroll.pxs',
+    nameZh: '魔法卷轴', nameEn: 'Magic Scroll',
+    descZh: '红蜡封印的卷轴', descEn: 'A scroll sealed with red wax',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
     id: 'tpl_heart', cat: 'glyphs', file: 'templates/tpl_heart.pxs',
     nameZh: '爱心', nameEn: 'Pixel Heart',
     descZh: '经典像素爱心', descEn: 'A classic pixel heart',
@@ -196,6 +256,18 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     id: 'tpl_moon', cat: 'glyphs', file: 'templates/tpl_moon.pxs',
     nameZh: '弯月', nameEn: 'Crescent Moon',
     descZh: '带陨坑的黄弯月与星', descEn: 'A cratered crescent with stars',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_gem', cat: 'glyphs', file: 'templates/tpl_gem.pxs',
+    nameZh: '蓝宝石', nameEn: 'Sapphire Gem',
+    descZh: '切面闪亮的蓝宝石', descEn: 'A faceted blue gem',
+    w: 16, h: 16, frames: 1, fps: 8
+  },
+  {
+    id: 'tpl_note', cat: 'glyphs', file: 'templates/tpl_note.pxs',
+    nameZh: '音符', nameEn: 'Music Note',
+    descZh: '跳动的蓝色音符', descEn: 'A blue note bouncing along',
     w: 16, h: 16, frames: 1, fps: 8
   },
 ];
