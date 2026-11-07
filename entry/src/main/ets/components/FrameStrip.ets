@@ -12,6 +12,7 @@ import { Compose } from '../core/Compose';
 import { EditorSession } from '../viewmodel/EditorSession';
 import { DocOps } from '../viewmodel/DocOps';
 import { Haptics } from '../viewmodel/Haptics';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 
 @ComponentV2
 export struct FrameStrip {
@@ -41,14 +42,9 @@ export struct FrameStrip {
 
   private rebuild(): void {
     const out: image.PixelMap[] = [];
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: this.doc.w, height: this.doc.h }
-    };
     for (let f = 0; f < this.doc.frameCount; f++) {
       Compose.composeFrame(this.doc, f, this.composeBuf);
-      out.push(image.createPixelMapSync(this.composeBuf.buffer.slice(0), opts));
+      out.push(PixelMaps.createSrgb(this.composeBuf.buffer.slice(0), this.doc.w, this.doc.h));
     }
     this.thumbs = out;
     this.frameCount = this.doc.frameCount;

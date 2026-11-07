@@ -7,6 +7,7 @@
 
 import { image } from '@kit.ImageKit';
 import { EditorLaunch } from '../viewmodel/EditorLaunch';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 import { ProjectStore, ProjectRecord, THUMB_MAX } from '../viewmodel/ProjectStore';
 import { TemplateDef } from '../viewmodel/TemplateDefs';
 import { BackupDialog } from '../components/BackupDialog';
@@ -84,12 +85,7 @@ struct ProjectListPage {
     if (tw < 1 || th < 1 || tw > THUMB_MAX || th > THUMB_MAX) {
       return undefined;
     }
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: tw, height: th }
-    };
-    return image.createPixelMapSync(bytes.buffer.slice(4), opts);
+    return PixelMaps.createSrgb(bytes.buffer.slice(4), tw, th);
   }
 
   /** 资源字符串转 JS 字符串（默认工程名等需要参与逻辑的文案）。 */

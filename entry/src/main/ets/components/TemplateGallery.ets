@@ -11,6 +11,7 @@
 import { image } from '@kit.ImageKit';
 import { i18n } from '@kit.LocalizationKit';
 import { ProjectStore, THUMB_MAX } from '../viewmodel/ProjectStore';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 import { TemplateDef, TEMPLATE_DEFS, TPL_CATEGORIES } from '../viewmodel/TemplateDefs';
 
 @ComponentV2
@@ -74,12 +75,7 @@ export struct TemplateGallery {
     if (tw < 1 || th < 1 || tw > THUMB_MAX || th > THUMB_MAX) {
       return undefined;
     }
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: tw, height: th }
-    };
-    return image.createPixelMapSync(bytes.buffer.slice(4), opts);
+    return PixelMaps.createSrgb(bytes.buffer.slice(4), tw, th);
   }
 
   /** 中文环境（zh-CN/zh-Hans 等前缀 zh）；其余走英文字段。 */

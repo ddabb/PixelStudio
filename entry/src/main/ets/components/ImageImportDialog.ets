@@ -17,6 +17,7 @@ import { Palette, Palettes } from '../core/Palettes';
 import { PixelDoc } from '../core/PixelDoc';
 import { ProjectStore } from '../viewmodel/ProjectStore';
 import { Haptics } from '../viewmodel/Haptics';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 
 /** 解码限边（源图最大边 >2048 时等比缩；内存峰值 ≤2048²×4≈16MB，功能需求 §9）。 */
 const DECODE_MAX_SIDE = 2048;
@@ -176,12 +177,7 @@ export struct ImageImportDialog {
         if (this.srcMap !== undefined) {
           this.srcMap.release();
         }
-        const dispOpts: image.InitializationOptions = {
-          editable: false,
-          pixelFormat: image.PixelMapFormat.RGBA_8888,
-          size: { width: w, height: h }
-        };
-        this.srcMap = image.createPixelMapSync(buf.slice(0), dispOpts);
+        this.srcMap = PixelMaps.createSrgb(buf.slice(0), w, h);
         pm.release();
         source.release();
         return true;
@@ -245,12 +241,7 @@ export struct ImageImportDialog {
     if (this.outMap !== undefined) {
       this.outMap.release();
     }
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: ow, height: oh }
-    };
-    this.outMap = image.createPixelMapSync(result.buffer.slice(0), opts);
+    this.outMap = PixelMaps.createSrgb(result.buffer.slice(0), ow, oh);
   }
 
   // ---------- 生成 / 导入 ----------

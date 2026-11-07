@@ -21,6 +21,7 @@ import { PixelDoc } from '../core/PixelDoc';
 import { EditorSession } from '../viewmodel/EditorSession';
 import { PaletteStore } from '../viewmodel/PaletteStore';
 import { AppCtx } from '../viewmodel/AppCtx';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 import { Compose } from '../core/Compose';
 import { Resample } from '../core/Resample';
 import { GifFrameData, GifEncodeOptions, encodeGif } from '../core/GifCodec/GifEncoder';
@@ -129,12 +130,7 @@ export struct ExportPanel {
         }
       }
     }
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: w, height: h }
-    };
-    return image.createPixelMapSync(buf.buffer, opts);
+    return PixelMaps.createSrgb(buf.buffer.slice(0), w, h);
   }
 
   /** 预估导出文件大小（启发式，标注“约”）：PNG≈raw×0.35；GIF≈帧像素×0.45+表头；图纸≈拼板像素×0.1。 */

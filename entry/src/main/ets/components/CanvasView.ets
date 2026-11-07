@@ -23,6 +23,7 @@ import { UndoStack } from '../core/UndoStack';
 import { GestureTracker, GestureSink } from '../core/GestureTracker';
 import { EditorSession, Tool, GridMode, SelRect } from '../viewmodel/EditorSession';
 import { Haptics } from '../viewmodel/Haptics';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 import { PartialRenderer } from './PartialRenderer';
 import { GridOverlay } from './GridOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -135,14 +136,10 @@ export struct CanvasView {
   }
 
   /** composeBuf → 新 PixelMap（实测 writeBufferToPixels 不触发已挂载 Image 刷新，
-   *  故每帧 createPixelMapSync 生成新对象驱动重绘，§6.2/§6.6）。 */
+   *  故每帧 createPixelMapSync 生成新对象驱动重绘，§6.2/§6.6）。
+   *  经 PixelMaps 钉 SRGB：广色域屏上画布颜色与 sRGB 渲染的色卡一致。 */
   private rebuildPixelMap(): void {
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: this.doc.w, height: this.doc.h }
-    };
-    this.pixelMap = image.createPixelMapSync(this.composeBuf.buffer.slice(0), opts);
+    this.pixelMap = PixelMaps.createSrgb(this.composeBuf.buffer.slice(0), this.doc.w, this.doc.h);
   }
 
   /** 整帧渲染（§6.2/§6.6）。 */
@@ -194,12 +191,7 @@ export struct CanvasView {
         data[i + 3] = (c >>> 24) & 0xFF;
       }
     }
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: w, height: h }
-    };
-    this.checkerMap = image.createPixelMapSync(data.buffer.slice(0), opts);
+    this.checkerMap = PixelMaps.createSrgb(data.buffer.slice(0), w, h);
   }
 
   // ---------- 坐标变换（vp ⇄ 像素） ----------

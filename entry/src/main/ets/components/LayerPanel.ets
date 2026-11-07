@@ -11,6 +11,7 @@ import { image } from '@kit.ImageKit';
 import { PixelDoc, MAX_LAYERS } from '../core/PixelDoc';
 import { EditorSession } from '../viewmodel/EditorSession';
 import { DocOps } from '../viewmodel/DocOps';
+import { PixelMaps } from '../viewmodel/PixelMaps';
 
 @ComponentV2
 export struct LayerPanel {
@@ -62,15 +63,10 @@ export struct LayerPanel {
 
   private rebuildThumbs(): void {
     const out: image.PixelMap[] = [];
-    const opts: image.InitializationOptions = {
-      editable: false,
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      size: { width: this.doc.w, height: this.doc.h }
-    };
     for (let li = 0; li < this.doc.layers.length; li++) {
       const cel = this.doc.getCell(this.doc.activeFrame, li);
       if (cel !== undefined) {
-        out.push(image.createPixelMapSync(cel.data.buffer.slice(0), opts));
+        out.push(PixelMaps.createSrgb(cel.data.buffer.slice(0), this.doc.w, this.doc.h));
       }
     }
     this.thumbs = out;
