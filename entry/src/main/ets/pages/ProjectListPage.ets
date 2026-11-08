@@ -210,8 +210,10 @@ struct ProjectListPage {
     Button(size.toString())
       .type(ButtonType.Normal)
       .borderRadius(10)
-      .width(52)
       .height(36)
+      // 自适应宽 + 最小宽：128/192/256 三位数字不被固定宽截成省略号（96 档同理留余量）。
+      .padding({ left: 12, right: 12 })
+      .constraintSize({ minWidth: 52 })
       .fontSize(14)
       .backgroundColor(this.newSize === size
         ? $r('app.color.brand') : $r('app.color.card_background'))

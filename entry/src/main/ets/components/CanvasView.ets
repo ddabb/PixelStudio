@@ -7,6 +7,8 @@
  * 坐标空间：外层画布区组件相对 vp；origin = (area − doc·zoom)/2 + pan。
  * 1.1.0：悬停像素光标（BrushCursorOverlay，鼠标/2in1）+ 触感反馈（Haptics）+
  * 洋葱皮吸色改读 blend 前 pickBuf 副本（修复幽灵色污染）。
+ * 1.2.3：长按吸管收敛为仅鼠标输入启用——触屏起笔停顿 ≥500ms 会静默吸取落笔处
+ * 旧色覆盖所选画笔色（表现为「切换颜色后画出旧笔迹色」），触屏改用显式吸管工具。
  * 1.2 大画布（开发计划 §6.5 P1 手段）：笔触移动走局部渲染通道——diff 活动 cel vs
  * 基线得脏矩形，仅重合成该区域（含洋葱皮），无变化零成本跳过；切帧/图层/播放/
  * 撤销等场景变化仍整帧渲染（场景签名比对兜底）。
@@ -86,6 +88,10 @@ export struct CanvasView {
   /** 选区内容全透明：拖动仅移动选区框，不改动像素（防止空浮动覆写擦除目标区）。 */
   private selRectOnly: boolean = false;
   private selEmpty: PixelBuffer | undefined = undefined;
+  /** 最近一次 Down 的输入源：长按吸管仅鼠标（2in1/键鼠）启用；
+   *  触屏手指起笔停顿 ≥500ms 极常见，静默吸取落笔处颜色会覆盖用户所选画笔色
+   *  （表现为「切换颜色后绘制出旧笔迹色」），故触屏不启用长按吸管。 */
+  private pointerSource: SourceType = SourceType.Unknown;
 
   aboutToAppear(): void {
     this.composeBuf = new Uint8Array(this.doc.w * this.doc.h * 4);
@@ -382,7 +388,10 @@ export struct CanvasView {
           Raster.stamp(cell, px, py, this.session.brushSize, this.strokeArgb(), this.session.mirrorMode);
           this.strokeChanged = true;
           Haptics.tick();
-          this.armLongPress();
+          // 长按吸管仅鼠标输入启用；触屏用显式吸管工具（Eyedropper）。
+          if (this.pointerSource === SourceType.Mouse) {
+            this.armLongPress();
+          }
           this.render();
         }
         break;
@@ -530,7 +539,7 @@ export struct CanvasView {
     this.selEmpty = undefined;
   }
 
-  // ---------- 长按吸管（铅笔/橡皮，未成笔 500ms） ----------
+  // ---------- 长按吸管（铅笔/橡皮，未成笔 500ms；仅鼠标输入，触屏见 onStrokeBegin） ----------
 
   private armLongPress(): void {
     this.disarmLongPress();
@@ -585,6 +594,7 @@ export struct CanvasView {
       }
       hilog.info(DOMAIN, TAG, 'touch down, touches=%{public}d, tool=%{public}d',
         event.touches.length, this.session.currentTool);
+      this.pointerSource = event.source;
       const instant = this.toolInstant();
       for (const t of event.changedTouches) {
         this.tracker.press(t.id, t.x, t.y, instant);
