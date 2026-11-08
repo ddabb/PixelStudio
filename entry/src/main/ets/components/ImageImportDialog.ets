@@ -1,9 +1,12 @@
 /**
  * components/ImageImportDialog.ets — 图片转像素画对话框（1.6.0，功能需求 §5）。
  * 选图（系统选择器免权限：PhotoViewPicker 优先，DocumentViewPicker 兜底）→
- * 参数面板（尺寸/适配/采样/色彩模式/自动色数/抖动）→ 并排实时预览 →
+ * 参数面板（尺寸/采样/色彩模式/自动色数/抖动）→ 并排实时预览 →
  * 生成：mode='project' 落盘新工程回调 onCreated（列表页跳编辑器）；
  *       mode='layer' 回调 onPixels（编辑器 DocOps.importLayer 导入为图层）。
+ * project 模式画布贴合原图宽高比（尺寸档=长边，短边等比换算，杜绝留白/裁切，
+ * 档位下方实时显示实际输出尺寸）；layer 模式画布固定，保留适配方式开关。
+ * 布局：头部行 = 标题（左）+ 确认按钮（右上角）；预览与参数联动即时重算。
  * 隐私硬约束：原图只在内存（解码限边 2048，峰值 ≤16MB），不落盘、不进 .pxs、零网络；
  * 取消/失败零副作用（不建空工程、不留临时文件）；确认前不写任何工程。
  * 注意：@Builder 值传参在 V2 是快照不响应，可变状态一律在 Builder 体内读取。
@@ -192,11 +195,25 @@ export struct ImageImportDialog {
   // ---------- 转换与预览 ----------
 
   private outW(): number {
-    return this.isLayerMode() && this.fixedW > 0 ? this.fixedW : this.outSize;
+    if (this.isLayerMode()) {
+      return this.fixedW > 0 ? this.fixedW : this.outSize;
+    }
+    // project 模式：画布贴合原图宽高比（修复非正方形图片留白/裁切）——
+    // 档位=长边，短边等比换算；未选图时退化为正方形档。
+    if (this.srcW < 1 || this.srcH < 1) {
+      return this.outSize;
+    }
+    return ImageImport.fitOutSize(this.srcW, this.srcH, this.outSize)[0];
   }
 
   private outH(): number {
-    return this.isLayerMode() && this.fixedH > 0 ? this.fixedH : this.outSize;
+    if (this.isLayerMode()) {
+      return this.fixedH > 0 ? this.fixedH : this.outSize;
+    }
+    if (this.srcW < 1 || this.srcH < 1) {
+      return this.outSize;
+    }
+    return ImageImport.fitOutSize(this.srcW, this.srcH, this.outSize)[1];
   }
 
   private paletteById(id: string): Palette | undefined {
@@ -371,25 +388,35 @@ export struct ImageImportDialog {
 
   @Builder
   sizeButtons() {
-    Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-      ForEach(IMPORT_SIZES, (size: number) => {
-        Button(size.toString())
-          .type(ButtonType.Normal)
-          .borderRadius(10)
-          .width(46)
-          .height(32)
-          .fontSize(13)
-          .backgroundColor(this.outSize === size
-            ? $r('app.color.brand') : $r('app.color.page_background'))
-          .fontColor(this.outSize === size
-            ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
-          .onClick(() => {
-            this.outSize = size;
-            this.rebuildPreview();
-          })
-      }, (size: number) => `s${size}`)
+    Column({ space: 8 }) {
+      Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+        ForEach(IMPORT_SIZES, (size: number) => {
+          Button(size.toString())
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            // 自适应宽 + 最小宽：128/192/256 三位数字不被固定宽截成省略号。
+            .padding({ left: 12, right: 12 })
+            .constraintSize({ minWidth: 46 })
+            .height(32)
+            .fontSize(13)
+            .backgroundColor(this.outSize === size
+              ? $r('app.color.brand') : $r('app.color.page_background'))
+            .fontColor(this.outSize === size
+              ? $r('app.color.on_accent_text') : $r('app.color.primary_text'))
+            .onClick(() => {
+              this.outSize = size;
+              this.rebuildPreview();
+            })
+        }, (size: number) => `s${size}`)
+      }
+      .width('100%')
+      // 实际输出尺寸与原图比例联动（选档/换图即更新，画布贴合图片宽高比）。
+      Text(`${this.outW()}×${this.outH()}`)
+        .fontSize(12)
+        .fontColor($r('app.color.secondary_text'))
     }
     .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   /** 色板模式：内置调色板横滑条（选中高亮）。 */
@@ -547,94 +574,126 @@ export struct ImageImportDialog {
 
   build() {
     if (this.open) {
+      // 全屏遮罩：点击空白处关闭；对话框本体为内层 Column（头部 + 滚动内容）。
       Column() {
-        Scroll() {
-          Column({ space: 12 }) {
+        Column() {
+          // 头部：标题（左）+ 确认按钮（右上角；未选图/转换中置灰）。
+          Row({ space: 8 }) {
             Text($r('app.string.import_title'))
               .fontSize(18)
               .fontWeight(FontWeight.Bold)
               .fontColor($r('app.color.primary_text'))
-            if (!this.picked) {
-              Text($r('app.string.import_hint'))
-                .fontSize(13)
-                .fontColor($r('app.color.secondary_text'))
-                .textAlign(TextAlign.Center)
-                .width('100%')
-            } else {
-              this.previewRow()
-            }
-            Button($r('app.string.import_pick'))
+              .maxLines(1)
+              .layoutWeight(1)
+            Button(this.isLayerMode()
+              ? $r('app.string.import_import') : $r('app.string.import_generate'))
               .type(ButtonType.Normal)
               .borderRadius(10)
-              .height(40)
-              .width('100%')
+              .height(34)
+              .padding({ left: 16, right: 16 })
               .fontSize(14)
-              .enabled(!this.busy)
-              .backgroundColor($r('app.color.card_background'))
-              .fontColor($r('app.color.primary_text'))
+              .enabled(!this.busy && this.result !== undefined)
+              .backgroundColor(this.result !== undefined && !this.busy
+                ? $r('app.color.brand') : $r('app.color.card_background'))
+              .fontColor(this.result !== undefined && !this.busy
+                ? $r('app.color.on_accent_text') : $r('app.color.hint_text'))
               .onClick(() => {
-                this.pickImage();
-              })
-            if (this.picked) {
-              if (!this.isLayerMode()) {
-                TextInput({ placeholder: $r('app.string.project_name_hint'), text: this.projectName })
-                  .onChange((v: string) => {
-                    this.projectName = v;
-                  })
-                  .height(42)
-                  .fontSize(13)
-                  .backgroundColor($r('app.color.page_background'))
-                this.paramLabel($r('app.string.import_size_label'))
-                this.sizeButtons()
-              }
-              this.paramLabel($r('app.string.import_fit_label'))
-              this.fitRow()
-              this.paramLabel($r('app.string.import_sample_label'))
-              this.sampleRow()
-              this.paramLabel($r('app.string.import_color_label'))
-              this.colorSection()
-              if (this.colorMode === 1) {
-                this.paletteChips()
-              }
-              if (this.colorMode === 2) {
-                this.autoColorChips()
-              }
-              this.ditherRow()
-              Button(this.isLayerMode()
-                ? $r('app.string.import_import') : $r('app.string.import_generate'))
-                .type(ButtonType.Normal)
-                .borderRadius(10)
-                .height(42)
-                .width('100%')
-                .fontSize(15)
-                .enabled(!this.busy && this.result !== undefined)
-                .backgroundColor($r('app.color.brand'))
-                .fontColor($r('app.color.on_accent_text'))
-                .onClick(() => {
-                  this.generate();
-                })
-            }
-            Button($r('app.string.common_cancel'))
-              .type(ButtonType.Normal)
-              .borderRadius(10)
-              .height(38)
-              .width('100%')
-              .fontSize(14)
-              .enabled(!this.busy)
-              .backgroundColor($r('app.color.page_background'))
-              .fontColor($r('app.color.secondary_text'))
-              .onClick(() => {
-                this.onClose();
+                this.generate();
               })
           }
           .width('100%')
-          .padding(20)
+          .padding({ left: 20, right: 20, top: 16, bottom: 8 })
+
+          Scroll() {
+            Column({ space: 12 }) {
+              if (!this.picked) {
+                Column({ space: 10 }) {
+                  Text($r('app.string.import_hint'))
+                    .fontSize(13)
+                    .fontColor($r('app.color.secondary_text'))
+                    .textAlign(TextAlign.Center)
+                    .width('100%')
+                  Button($r('app.string.import_pick'))
+                    .type(ButtonType.Normal)
+                    .borderRadius(10)
+                    .height(42)
+                    .width('100%')
+                    .fontSize(15)
+                    .enabled(!this.busy)
+                    .backgroundColor($r('app.color.brand'))
+                    .fontColor($r('app.color.on_accent_text'))
+                    .onClick(() => {
+                      this.pickImage();
+                    })
+                }
+                .width('100%')
+              } else {
+                // 已选图：预览联动区 + 参数区。
+                this.previewRow()
+                Button($r('app.string.import_pick'))
+                  .type(ButtonType.Normal)
+                  .borderRadius(10)
+                  .height(38)
+                  .width('100%')
+                  .fontSize(14)
+                  .enabled(!this.busy)
+                  .backgroundColor($r('app.color.card_background'))
+                  .fontColor($r('app.color.primary_text'))
+                  .onClick(() => {
+                    this.pickImage();
+                  })
+                if (!this.isLayerMode()) {
+                  TextInput({ placeholder: $r('app.string.project_name_hint'), text: this.projectName })
+                    .onChange((v: string) => {
+                      this.projectName = v;
+                    })
+                    .height(42)
+                    .fontSize(13)
+                    .backgroundColor($r('app.color.page_background'))
+                  this.paramLabel($r('app.string.import_size_label'))
+                  this.sizeButtons()
+                } else {
+                  // layer 模式：画布尺寸固定，适配方式（裁切铺满/完整保留）才有意义；
+                  // project 模式画布贴合原图比例，无需适配开关。
+                  this.paramLabel($r('app.string.import_fit_label'))
+                  this.fitRow()
+                }
+                this.paramLabel($r('app.string.import_sample_label'))
+                this.sampleRow()
+                this.paramLabel($r('app.string.import_color_label'))
+                this.colorSection()
+                if (this.colorMode === 1) {
+                  this.paletteChips()
+                }
+                if (this.colorMode === 2) {
+                  this.autoColorChips()
+                }
+                this.ditherRow()
+              }
+              Button($r('app.string.common_cancel'))
+                .type(ButtonType.Normal)
+                .borderRadius(10)
+                .height(38)
+                .width('100%')
+                .fontSize(14)
+                .enabled(!this.busy)
+                .backgroundColor($r('app.color.page_background'))
+                .fontColor($r('app.color.secondary_text'))
+                .onClick(() => {
+                  this.onClose();
+                })
+            }
+            .width('100%')
+            .padding({ left: 20, right: 20, bottom: 20 })
+          }
+          .scrollBar(BarState.Off)
+          .align(Alignment.Top)
+          .constraintSize({ maxHeight: '70%' })
+          .width('100%')
         }
-        .scrollBar(BarState.Off)
         .width('88%')
-        .constraintSize({ maxHeight: '86%' })
-        .backgroundColor($r('app.color.card_background'))
         .borderRadius(16)
+        .backgroundColor($r('app.color.card_background'))
       }
       .width('100%')
       .height('100%')

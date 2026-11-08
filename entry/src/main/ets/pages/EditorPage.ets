@@ -1,8 +1,10 @@
 /**
- * pages/EditorPage.ets — 编辑器主页（开发计划 §5.1）：顶栏 / 画布 / 工具行 / 笔宽行 / 调色板行；
+ * pages/EditorPage.ets — 编辑器主页（开发计划 §5.1）：顶栏 / 画布 / 工具行 / 调色板行；
  * 底部 Tab：画布/图层/帧/导出。播放 = setInterval 循环推进 activeFrame；触屏/撤销/帧操作即停。
  * 工程：EditorLaunch 静态参数进入；30s 自动保存 + onBackPress/onPageHide 即存；ready 门控加载。
  * 1.1.0-D：文本工具（TextToolDialog 根部单挂载）+ 四向对称 + 抖动填充。
+ * 1.2.3 布局重构：笔宽行并入工具行（工具+笔宽/选区+导入/清空单行横滑，竖分隔线分组），
+ * 底部 4 行 → 3 行（工具/调色板/Tab），画布可视区更大。
  * 注意：@Builder 值传参在 V2 是快照不响应，所有会变的状态一律在 Builder 体内读取。
  */
 
@@ -466,7 +468,9 @@ struct EditorPage {
       })
   }
 
-  /** 工具行：8 工具 + 镜像 + 实心 + 网格三态（横向可滚动）。 */
+  /** 工具行（单行横滑）：工具 + 镜像/网格 + 笔宽或选区操作 + 导入/清空。
+   *  笔宽行并入工具行（底部 4 行 → 3 行，画布更大）；Selection 工具时
+   *  笔宽位替换为选区复制/删除/取消。竖分隔线分组，低频操作居尾。 */
   @Builder
   toolRow() {
     Scroll() {
@@ -502,6 +506,85 @@ struct EditorPage {
           this.filledButton()
         }
         this.gridButton()
+        Divider()
+          .vertical(true)
+          .strokeWidth(1)
+          .color($r('app.color.border_color'))
+          .height(24)
+        if (this.session.currentTool === Tool.Selection) {
+          // 选区操作（替代笔宽位）：复制/删除/取消。
+          Button($r('app.string.sel_copy'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(36)
+            .padding({ left: 14, right: 14 })
+            .fontSize(14)
+            .enabled(this.session.sel !== undefined)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor(this.session.sel !== undefined
+              ? $r('app.color.primary_text') : $r('app.color.hint_text'))
+            .onClick(() => {
+              DocOps.copySelection(this.doc, this.session);
+            })
+          Button($r('app.string.sel_delete'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(36)
+            .padding({ left: 14, right: 14 })
+            .fontSize(14)
+            .enabled(this.session.sel !== undefined)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor(this.session.sel !== undefined
+              ? $r('app.color.danger_red') : $r('app.color.hint_text'))
+            .onClick(() => {
+              DocOps.deleteSelection(this.doc, this.session);
+            })
+          Button($r('app.string.sel_cancel'))
+            .type(ButtonType.Normal)
+            .borderRadius(10)
+            .height(36)
+            .padding({ left: 14, right: 14 })
+            .fontSize(14)
+            .enabled(this.session.sel !== undefined)
+            .backgroundColor($r('app.color.card_background'))
+            .fontColor(this.session.sel !== undefined
+              ? $r('app.color.primary_text') : $r('app.color.hint_text'))
+            .onClick(() => {
+              DocOps.cancelSelection(this.session);
+            })
+        } else {
+          this.sizeButton(1)
+          this.sizeButton(2)
+          this.sizeButton(3)
+        }
+        Divider()
+          .vertical(true)
+          .strokeWidth(1)
+          .color($r('app.color.border_color'))
+          .height(24)
+        Button($r('app.string.import_entry'))
+          .type(ButtonType.Normal)
+          .borderRadius(10)
+          .height(36)
+          .padding({ left: 14, right: 14 })
+          .fontSize(14)
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.primary_text'))
+          .onClick(() => {
+            this.importOpen = true;
+            Haptics.tick();
+          })
+        Button($r('app.string.clear_canvas'))
+          .type(ButtonType.Normal)
+          .borderRadius(10)
+          .height(36)
+          .padding({ left: 14, right: 14 })
+          .fontSize(14)
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.danger_red'))
+          .onClick(() => {
+            this.clearCanvas();
+          })
       }
       .padding({ left: 12, right: 12 })
     }
@@ -512,56 +595,11 @@ struct EditorPage {
     .backgroundColor($r('app.color.card_background'))
   }
 
-  /** 笔宽行（非选区工具时）。 */
-  @Builder
-  brushRow() {
-    Row({ space: 8 }) {
-      Text($r('app.string.brush_size'))
-        .fontSize(12)
-        .fontColor($r('app.color.secondary_text'))
-      this.sizeButton(1)
-      this.sizeButton(2)
-      this.sizeButton(3)
-      Blank()
-      Button($r('app.string.import_entry'))
-        .type(ButtonType.Normal)
-        .borderRadius(10)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(14)
-        .backgroundColor($r('app.color.card_background'))
-        .fontColor($r('app.color.primary_text'))
-        .onClick(() => {
-          this.importOpen = true;
-          Haptics.tick();
-        })
-      Button($r('app.string.clear_canvas'))
-        .type(ButtonType.Normal)
-        .borderRadius(10)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(14)
-        .backgroundColor($r('app.color.card_background'))
-        .fontColor($r('app.color.danger_red'))
-        .onClick(() => {
-          this.clearCanvas();
-        })
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-    .backgroundColor($r('app.color.card_background'))
-  }
-
-  /** 画布工具组：工具行 + 笔宽/选区行 + 调色板横滑行（窄屏仅画布 Tab；平板常驻左列）。 */
+  /** 画布工具组：工具行（含笔宽/选区/导入/清空）+ 调色板横滑行（窄屏仅画布 Tab；平板常驻左列）。 */
   @Builder
   canvasTools() {
     Column() {
       this.toolRow()
-      if (this.session.currentTool === Tool.Selection) {
-        this.selectionBar()
-      } else {
-        this.brushRow()
-      }
       PaletteBar({
         session: this.session,
         store: this.paletteStore,
@@ -706,56 +744,6 @@ struct EditorPage {
     }
     .layoutWeight(1)
     .width('100%')
-  }
-
-  /** 选区操作行（Selection 工具时替代笔宽行）：复制/删除/取消。 */
-  @Builder
-  selectionBar() {
-    Row({ space: 8 }) {
-      Button($r('app.string.sel_copy'))
-        .type(ButtonType.Normal)
-        .borderRadius(10)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(14)
-        .enabled(this.session.sel !== undefined)
-        .backgroundColor($r('app.color.card_background'))
-        .fontColor(this.session.sel !== undefined
-          ? $r('app.color.primary_text') : $r('app.color.hint_text'))
-        .onClick(() => {
-          DocOps.copySelection(this.doc, this.session);
-        })
-      Button($r('app.string.sel_delete'))
-        .type(ButtonType.Normal)
-        .borderRadius(10)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(14)
-        .enabled(this.session.sel !== undefined)
-        .backgroundColor($r('app.color.card_background'))
-        .fontColor(this.session.sel !== undefined
-          ? $r('app.color.danger_red') : $r('app.color.hint_text'))
-        .onClick(() => {
-          DocOps.deleteSelection(this.doc, this.session);
-        })
-      Button($r('app.string.sel_cancel'))
-        .type(ButtonType.Normal)
-        .borderRadius(10)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(14)
-        .enabled(this.session.sel !== undefined)
-        .backgroundColor($r('app.color.card_background'))
-        .fontColor(this.session.sel !== undefined
-          ? $r('app.color.primary_text') : $r('app.color.hint_text'))
-        .onClick(() => {
-          DocOps.cancelSelection(this.session);
-        })
-      Blank()
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-    .backgroundColor($r('app.color.card_background'))
   }
 
   /** 主布局（顶栏 + compact/wide 自适应体）；Builder 体内直读状态保证响应。 */

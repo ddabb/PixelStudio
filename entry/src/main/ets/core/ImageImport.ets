@@ -31,6 +31,21 @@ export class ImageImport {
   }
 
   /**
+   * 等比输出尺寸（project 模式画布贴合原图宽高比，杜绝留白/裁切）：
+   * longSide 档位 = 长边；短边等比换算四舍五入，最小 1。
+   * 返回 [w, h]（方向与源图一致）；非法参数抛错。
+   */
+  static fitOutSize(sw: number, sh: number, longSide: number): number[] {
+    if (sw < 1 || sh < 1 || longSide < 1) {
+      throw new Error('ImageImport.fitOutSize: invalid arguments');
+    }
+    const long = Math.max(sw, sh);
+    const short = Math.min(sw, sh);
+    const shortOut = Math.max(1, Math.round(longSide * short / long));
+    return sw >= sh ? [longSide, shortOut] : [shortOut, longSide];
+  }
+
+  /**
    * 缩采样：src（RGBA，sw×sh）→ outW×outH RGBA。
    * cover：等比缩放至铺满后居中裁切；contain：等比内接 + 透明留边并居中。
    * box=true 按 alpha 加权面积平均（避免透明边缘发黑）；false 取区块中心像素。

@@ -1,9 +1,11 @@
 /**
  * components/PaletteBar.ets — 调色板横滑行（开发计划 §5.1：
- * 横滑行 = 当前色 │ 调色板色卡… │ ＋）。
- * 当前色块与 ＋ 打开调色板面板（PalettePanel：预设/自定义/HSB/HEX/最近使用）。
+ * 横滑行 = 当前色 │ 十六进制值 │ 调色板色卡… │ ＋）。
+ * 当前色块旁实时显示所选颜色的十六进制 RGB 值（#RRGGBB，含透明度时 #AARRGGBB），
+ * 所见即所绘；当前色块与 ＋ 打开调色板面板（PalettePanel：预设/自定义/HSB/HEX/最近使用）。
  */
 
+import { ColorUtil } from '../core/ColorUtil';
 import { EditorSession, Tool } from '../viewmodel/EditorSession';
 import { PaletteStore } from '../viewmodel/PaletteStore';
 
@@ -42,6 +44,14 @@ export struct PaletteBar {
         .backgroundColor(this.session.color)
         .border({ width: 1, color: $r('app.color.border_color') })
         .accessibilityText($r('app.string.palette_current_color'))
+        .onClick(() => {
+          this.onOpenPanel();
+        })
+      // 所选颜色十六进制 RGB 值（透明色 8 位），选色即联动更新。
+      Text(ColorUtil.toHex(this.session.color))
+        .fontSize(11)
+        .fontColor($r('app.color.secondary_text'))
+        .maxLines(1)
         .onClick(() => {
           this.onOpenPanel();
         })

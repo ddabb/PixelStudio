@@ -1,7 +1,8 @@
 /**
  * imageImportTest — 图片转像素画纯函数套件（1.6.0，功能需求 §9）。
- * 覆盖：缩采样 box/nearest、cover/contain 对齐、alpha 二值化、最近色同距确定性、
- * 抖动确定性、自动色板、非法参数拒收、端到端同输入逐字节一致。
+ * 覆盖：等比输出尺寸（画布贴合原图比例）、缩采样 box/nearest、cover/contain 对齐、
+ * alpha 二值化、最近色同距确定性、抖动确定性、自动色板、非法参数拒收、
+ * 端到端同输入逐字节一致。
  * 运行协议（模拟器 class 过滤）：
  *   hdc shell aa test -b com.ddabb.pixelstudio -m entry_test -s unittest OpenHarmonyTestRunner
  *     -s class imageImportTest -s timeout 15000
@@ -63,6 +64,54 @@ function quad4(): Uint8Array {
 
 export default function imageImportTest() {
   describe('imageImportTest', () => {
+    // ---------- 等比输出尺寸（project 模式画布贴合原图比例） ----------
+
+    it('fitOutSizeKeepsSourceAspectRatio', 0, () => {
+      // 横图 4:3：档位=宽（长边），高等比。
+      expect(ImageImport.fitOutSize(400, 300, 64)[0]).assertEqual(64);
+      expect(ImageImport.fitOutSize(400, 300, 64)[1]).assertEqual(48);
+      // 竖图 3:4：档位=高（长边），宽等比。
+      expect(ImageImport.fitOutSize(300, 400, 64)[0]).assertEqual(48);
+      expect(ImageImport.fitOutSize(300, 400, 64)[1]).assertEqual(64);
+      // 正方形：等比即同档。
+      expect(ImageImport.fitOutSize(64, 64, 64)[0]).assertEqual(64);
+      expect(ImageImport.fitOutSize(64, 64, 64)[1]).assertEqual(64);
+      // 16:9 横图 256 档。
+      expect(ImageImport.fitOutSize(1920, 1080, 256)[0]).assertEqual(256);
+      expect(ImageImport.fitOutSize(1920, 1080, 256)[1]).assertEqual(144);
+    });
+
+    it('fitOutSizeClampsShortSideToOne', 0, () => {
+      // 极端比例：短边等比换算后钳制最小 1。
+      expect(ImageImport.fitOutSize(1000, 10, 256)[1]).assertEqual(3); // 256×10/1000=2.56→3
+      expect(ImageImport.fitOutSize(10000, 1, 256)[1]).assertEqual(1);
+      expect(ImageImport.fitOutSize(1, 10000, 256)[0]).assertEqual(1);
+    });
+
+    it('fitOutSizeRejectsInvalidArgs', 0, () => {
+      let threw = false;
+      try {
+        ImageImport.fitOutSize(0, 10, 64);
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).assertTrue();
+      threw = false;
+      try {
+        ImageImport.fitOutSize(10, 0, 64);
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).assertTrue();
+      threw = false;
+      try {
+        ImageImport.fitOutSize(10, 10, 0);
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).assertTrue();
+    });
+
     // ---------- 缩采样：几何与采样 ----------
 
     it('resampleRejectsInvalidArgs', 0, () => {
