@@ -55,6 +55,8 @@ export class EditorSession {
   @Trace zoom: number = 1;
   @Trace panX: number = 0;
   @Trace panY: number = 0;
+  /** 一键复位视口（顶栏尺寸文本点击）：自增触发 CanvasView 重新适配（zoom=fit 整倍数、pan 归零）。 */
+  @Trace resetViewTick: number = 0;
   @Trace dirty: boolean = false;
   /** 画布外修改文档时自增，CanvasView @Monitor 后重渲染。 */
   @Trace tick: number = 0;

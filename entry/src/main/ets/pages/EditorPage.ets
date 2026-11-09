@@ -369,6 +369,12 @@ struct EditorPage {
         : (m === MirrorMode.XY ? $r('app.string.mirror_xy') : $r('app.string.mirror_off')));
   }
 
+  /** 顶栏缩放倍数文本：一位小数（整倍无小数），与画布徽标同口径。 */
+  private zoomLabel(): string {
+    const t = Math.round(this.session.zoom * 10) / 10;
+    return `${t}×`;
+  }
+
   @Builder
   filledButton() {
     Button($r('app.string.shape_filled'))
@@ -771,9 +777,15 @@ struct EditorPage {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
-        Text(`${this.doc.w}×${this.doc.h}`)
+        // 尺寸 + 实时缩放倍数：点击一键复位视口（fit 整倍数、pan 归零）。
+        Text(`${this.doc.w}×${this.doc.h} · ${this.zoomLabel()}`)
           .fontSize(13)
           .fontColor($r('app.color.secondary_text'))
+          .maxLines(1)
+          .onClick(() => {
+            this.session.resetViewTick++;
+            Haptics.tick();
+          })
         if (this.session.dirty) {
           Circle()
             .width(8)

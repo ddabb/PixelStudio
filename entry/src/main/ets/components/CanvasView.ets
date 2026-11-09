@@ -37,6 +37,8 @@ const FRAME_MS = 16;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 32;
 const EYEDROP_LONG_PRESS_MS = 500;
+/** 缩放倍数徽标：手势结束/复位后保留时长，逾期淡出。 */
+const ZOOM_BADGE_MS = 700;
 /** 洋葱皮：上一帧 30% 透明叠加（开发计划 §4.1）。 */
 const ONION_STRENGTH_PCT = 30;
 const FALLBACK_CHECKER_A = 0xFFFFFFFF;
@@ -55,6 +57,8 @@ export struct CanvasView {
   /** 悬停像素光标（鼠标/2in1）：锚点像素坐标，-1 = 隐藏。 */
   @Local hoverPx: number = -1;
   @Local hoverPy: number = -1;
+  /** 缩放倍数徽标（捏合中/复位后短暂显示，自动淡出）。 */
+  @Local zoomBadgeVisible: boolean = false;
 
   private composeBuf: Uint8Array = new Uint8Array(0);
   /** 洋葱皮缓冲：上一帧合成结果（编辑预览专用，播放时跳过）。 */
@@ -65,6 +69,7 @@ export struct CanvasView {
   private areaW: number = 0;
   private areaH: number = 0;
   private fitted: boolean = false;
+  private zoomBadgeTimer: number = -1;
   private strokeBefore: Uint8Array | undefined = undefined;
   /** 笔触局部渲染辅助（1.2 大画布）：基线 diff + 脏矩形区域重合成。 */
   private partialRenderer: PartialRenderer | undefined = undefined;
@@ -111,6 +116,23 @@ export struct CanvasView {
   onSessionTick(): void {
     hilog.info(DOMAIN, TAG, 'session tick=%{public}d render', this.session.tick);
     this.render();
+  }
+
+  /** 一键复位视口（顶栏尺寸文本点击）：重新适配（fit 整倍数、pan 归零）+ 徽标反馈。 */
+  @Monitor('session.resetViewTick')
+  onResetView(): void {
+    hilog.info(DOMAIN, TAG, 'reset view tick=%{public}d', this.session.resetViewTick);
+    this.fitView();
+    this.showZoomBadge();
+    this.scheduleHideZoomBadge();
+  }
+
+  aboutToDisappear(): void {
+    if (this.zoomBadgeTimer >= 0) {
+      clearTimeout(this.zoomBadgeTimer);
+      this.zoomBadgeTimer = -1;
+    }
+    this.disarmLongPress();
   }
 
   /** Move 事件渲染节流：合并到至多每帧一次；笔触中走局部渲染，其余整帧；
@@ -561,6 +583,11 @@ export struct CanvasView {
 
   // ---------- 双指手势：捏合缩放 + 平移 ----------
 
+  /** 双指手势开始：显示缩放徽标（持续更新，结束延迟淡出）。 */
+  onZoomGestureStart(): void {
+    this.showZoomBadge();
+  }
+
   onGestureMove(fromMidX: number, fromMidY: number, toMidX: number, toMidY: number,
     zoomFactor: number): void {
     if (this.areaW <= 0 || this.areaH <= 0) {
@@ -578,6 +605,11 @@ export struct CanvasView {
     this.session.panY = newOy - (this.areaH - this.doc.h * newZoom) / 2;
     hilog.info(DOMAIN, TAG, 'gesture zoom=%{public}s pan=(%{public}d,%{public}d)',
       newZoom.toFixed(2), Math.round(this.session.panX), Math.round(this.session.panY));
+  }
+
+  /** 双指手势结束：徽标延迟淡出。 */
+  onZoomGestureEnd(): void {
+    this.scheduleHideZoomBadge();
   }
 
   // ---------- 触摸事件 ----------
@@ -657,6 +689,31 @@ export struct CanvasView {
     this.hoverPy = (py >= 0 && py < this.doc.h) ? py : -1;
   }
 
+  /** 缩放倍数徽标：捏合/复位后短暂显示，700ms 无操作自动淡出。 */
+  private showZoomBadge(): void {
+    if (this.zoomBadgeTimer >= 0) {
+      clearTimeout(this.zoomBadgeTimer);
+      this.zoomBadgeTimer = -1;
+    }
+    this.zoomBadgeVisible = true;
+  }
+
+  private scheduleHideZoomBadge(): void {
+    if (this.zoomBadgeTimer >= 0) {
+      clearTimeout(this.zoomBadgeTimer);
+    }
+    this.zoomBadgeTimer = setTimeout(() => {
+      this.zoomBadgeTimer = -1;
+      this.zoomBadgeVisible = false;
+    }, ZOOM_BADGE_MS);
+  }
+
+  /** 缩放倍数文本：一位小数（整倍无小数），如 8× / 8.5×。 */
+  private zoomLabel(): string {
+    const t = Math.round(this.session.zoom * 10) / 10;
+    return `${t}×`;
+  }
+
   private onCanvasArea(newArea: Area): void {
     const w = Number(newArea.width);
     const h = Number(newArea.height);
@@ -675,13 +732,22 @@ export struct CanvasView {
         return;
       }
       this.fitted = true;
-      this.session.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
-      this.session.panX = 0;
-      this.session.panY = 0;
+      this.fitView();
       hilog.info(DOMAIN, TAG, 'fit zoom=%{public}s area=%{public}s x %{public}s doc=%{public}s x %{public}s',
         this.session.zoom.toString(), Math.round(w).toString(), Math.round(h).toString(),
         this.doc.w.toString(), this.doc.h.toString());
     }
+  }
+
+  /** 视口复位：fit 整倍数缩放（钳 [MIN_ZOOM, MAX_ZOOM]）+ pan 归零（画布居中）。 */
+  private fitView(): void {
+    if (this.areaW <= 0 || this.areaH <= 0) {
+      return;
+    }
+    const z = Math.floor(Math.min(this.areaW / this.doc.w, this.areaH / this.doc.h));
+    this.session.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+    this.session.panX = 0;
+    this.session.panY = 0;
   }
 
   /** 无障碍：当前工具本地化名（tool_* 资源键按 Tool 枚举映射）。 */
@@ -760,6 +826,20 @@ export struct CanvasView {
       .width(this.doc.w * this.session.zoom)
       .height(this.doc.h * this.session.zoom)
       .translate({ x: this.session.panX, y: this.session.panY })
+      // 缩放倍数徽标：捏合中/复位后顶部中央短暂显示，自动淡出（pin 后用户可循顶栏百分比一键复位）。
+      if (this.zoomBadgeVisible) {
+        Text(this.zoomLabel())
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.on_accent_text'))
+          .backgroundColor($r('app.color.brand'))
+          .borderRadius(14)
+          .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+          .position({ x: '50%', y: 16 })
+          .markAnchor({ x: '50%', y: 0 })
+          .transition(TransitionEffect.OPACITY
+            .animation({ duration: 180, curve: Curve.EaseOut }))
+      }
     }
     .width('100%')
     .height('100%')
@@ -803,6 +883,7 @@ class CanvasSink implements GestureSink {
   }
 
   onGestureStart(): void {
+    this.view.onZoomGestureStart();
   }
 
   onGestureMove(fromMidX: number, fromMidY: number, toMidX: number, toMidY: number,
@@ -811,5 +892,6 @@ class CanvasSink implements GestureSink {
   }
 
   onGestureEnd(): void {
+    this.view.onZoomGestureEnd();
   }
 }
